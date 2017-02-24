@@ -12,9 +12,13 @@ flutter_app("chat") {
   deps = [
     "//application/lib/app/dart",
     "//apps/modular/services/story:story_dart",
+    "//apps/modules/packages/models",
+    "//apps/modules/packages/util",
+    "//apps/modules/packages/widgets",
     "//apps/mozart/services/views:views_dart",
     "//lib/fidl/dart",
     "//lib/flutter/packages/flutter",
+    "//third_party/dart-pkg/pub/intl",
   ]
 
   analysis_options = "//apps/chat/.analysis_options"

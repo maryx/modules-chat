@@ -8,5 +8,12 @@ description: A new flutter project.
 dependencies:
   flutter:
     sdk: flutter
+  widgets:
+    path: ../../../modules/packages/widgets
+  models:
+    path: ../../../modules/packages/models
+  util:
+    path: ../../../modules/packages/util
+  intl: ^0.14.0
 flutter:
   uses-material-design: true
