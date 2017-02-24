@@ -13,7 +13,7 @@ class App extends StatelessWidget {
     return new MaterialApp(
       title: 'Chat',
       theme: new ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.deepOrange,
       ),
       home: new MyHomePage(title: 'Chat Home Page'),
     );
