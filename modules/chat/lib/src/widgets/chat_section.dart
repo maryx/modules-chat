@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:meta/meta.dart';
 import 'package:models/user.dart';
 import 'package:widgets/user.dart';
@@ -48,17 +47,6 @@ class ChatSection extends StatelessWidget{
     chatBubbles.forEach((ChatBubble bubble) {
       assert(bubble.orientation == orientation);
     });
-  }
-
-  String get _displayDate {
-    if(timestamp == null) {
-      return '';
-    }
-    if (TimeUtil.isSameDay(new DateTime.now(), timestamp)) {
-      return new DateFormat.jm().format(timestamp);
-    } else {
-      return new DateFormat.MMMd().format(timestamp);
-    }
   }
 
   @override
@@ -110,7 +98,7 @@ class ChatSection extends StatelessWidget{
                 const EdgeInsets.only(left: 50.0) :
                 const EdgeInsets.only(right: 50.0),
             child: new Text(
-              _displayDate,
+              TimeUtil.relativeDisplayDate(date: timestamp),
               style: new TextStyle(
                 fontSize: 12.0,
                 color: Colors.grey[500],

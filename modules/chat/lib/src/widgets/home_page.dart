@@ -9,6 +9,8 @@ import 'chat_bubble.dart';
 import 'chat_section.dart';
 import 'message_input.dart';
 
+import 'chat_thread_list_item.dart';
+
 /// MyHomePage widget.
 class MyHomePage extends StatelessWidget {
   /// MyHomePage constructor.
@@ -69,6 +71,33 @@ class MyHomePage extends StatelessWidget {
                    ),
                  ),
                ],
+             ),
+             new ChatThreadListItem(
+               users: <User>[
+                 new User(
+                   name: 'Coco',
+                   email: 'Coco@cute',
+                   picture: 'https://github.com/dvdwasibi/DogsOfFuchsia/blob/master/coco.jpg?raw=true',
+                 ),
+                 new User(
+                   name: 'Yoyo',
+                   email: 'Yoyo@cute',
+                   picture: 'https://github.com/dvdwasibi/DogsOfFuchsia/blob/master/yoyo.jpg?raw=true',
+                 ),
+               ],
+               snippet: 'Hello fellow puppers',
+               timestamp: new DateTime.now(),
+             ),
+             new ChatThreadListItem(
+               users: <User>[
+                 new User(
+                   name: 'Coco',
+                   email: 'Coco@cute',
+                   picture: 'https://github.com/dvdwasibi/DogsOfFuchsia/blob/master/coco.jpg?raw=true',
+                 ),
+               ],
+               snippet: 'Toasters gonna toast',
+               timestamp: new DateTime.now(),
              ),
            ],
          ),
