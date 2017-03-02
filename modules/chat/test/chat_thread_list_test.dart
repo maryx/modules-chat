@@ -4,31 +4,28 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:models/user.dart';
 
+import '../lib/src/widgets/chat_thread_list.dart';
 import '../lib/src/widgets/chat_thread_list_item.dart';
 
 
 void main() {
   testWidgets(
-      'Test to see if tapping on a ChatThreadListItem will call the '
+      'Test to see if tapping on the new chat FAB will call the '
       'appropriate callback', (WidgetTester tester) async {
-    Key chatThreadListItemKey = new UniqueKey();
 
     int taps = 0;
-
     await tester.pumpWidget(new Material(
-      child: new ChatThreadListItem(
-        key: chatThreadListItemKey,
-        users: <User>[new User(name: 'Coco yang', email: 'Coco@cute')],
-        onSelect: () {
+      child: new ChatThreadList(
+        chatThreads: <ChatThreadListItem>[],
+        onNewChat: () {
           taps++;
         }
       ),
     ));
 
     expect(taps, 0);
-    await tester.tap(find.byKey(chatThreadListItemKey));
+    await tester.tap(find.byType(FloatingActionButton));
     expect(taps, 1);
   });
 }
