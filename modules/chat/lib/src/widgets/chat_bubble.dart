@@ -60,6 +60,14 @@ class ChatBubble extends StatelessWidget {
         topRight: _kBubbleBorderRadius,
       );
     }
+
+    // If the background color is not provided, the background will default to
+    // the current theme's primary color. In this case, make sure to use the
+    // primaryTextTheme which contrasts with the primary color.
+    TextStyle textStyle = backgroundColor != null
+        ? theme.textTheme.body1
+        : theme.primaryTextTheme.body1;
+
     return new Container(
       padding: const EdgeInsets.all(16.0),
       margin: const EdgeInsets.all(2.0),
@@ -67,7 +75,10 @@ class ChatBubble extends StatelessWidget {
         backgroundColor: backgroundColor ?? theme.primaryColor,
         borderRadius: borderRadius,
       ),
-      child: child,
+      child: new DefaultTextStyle(
+        style: textStyle,
+        child: child,
+      ),
     );
   }
 }
