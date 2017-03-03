@@ -8,19 +8,17 @@ import 'package:flutter_test/flutter_test.dart';
 import '../lib/src/widgets/chat_thread_list.dart';
 import '../lib/src/widgets/chat_thread_list_item.dart';
 
-
 void main() {
   testWidgets(
       'Test to see if tapping on the new chat FAB will call the '
       'appropriate callback', (WidgetTester tester) async {
-
     int taps = 0;
     await tester.pumpWidget(new Material(
       child: new ChatThreadList(
         chatThreads: <ChatThreadListItem>[],
         onNewChat: () {
           taps++;
-        }
+        },
       ),
     ));
 

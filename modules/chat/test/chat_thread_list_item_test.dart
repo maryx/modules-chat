@@ -22,7 +22,7 @@ void main() {
         users: <User>[new User(name: 'Coco yang', email: 'Coco@cute')],
         onSelect: () {
           taps++;
-        }
+        },
       ),
     ));
 

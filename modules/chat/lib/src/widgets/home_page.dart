@@ -11,7 +11,6 @@ import 'chat_thread.dart';
 import 'chat_thread_list.dart';
 import 'chat_thread_list_item.dart';
 
-
 /// MyHomePage widget.
 class MyHomePage extends StatelessWidget {
   /// MyHomePage constructor.
@@ -44,12 +43,14 @@ class MyHomePage extends StatelessWidget {
                       new User(
                         name: 'Coco',
                         email: 'Coco@cute',
-                        picture: 'https://github.com/dvdwasibi/DogsOfFuchsia/blob/master/coco.jpg?raw=true',
+                        picture:
+                            'https://github.com/dvdwasibi/DogsOfFuchsia/blob/master/coco.jpg?raw=true',
                       ),
                       new User(
                         name: 'Yoyo',
                         email: 'Yoyo@cute',
-                        picture: 'https://github.com/dvdwasibi/DogsOfFuchsia/blob/master/yoyo.jpg?raw=true',
+                        picture:
+                            'https://github.com/dvdwasibi/DogsOfFuchsia/blob/master/yoyo.jpg?raw=true',
                       ),
                     ],
                     snippet: 'Hello fellow puppers',
@@ -60,7 +61,8 @@ class MyHomePage extends StatelessWidget {
                       new User(
                         name: 'Coco',
                         email: 'Coco@cute',
-                        picture: 'https://github.com/dvdwasibi/DogsOfFuchsia/blob/master/coco.jpg?raw=true',
+                        picture:
+                            'https://github.com/dvdwasibi/DogsOfFuchsia/blob/master/coco.jpg?raw=true',
                       ),
                     ],
                     snippet: 'Toasters gonna toast',

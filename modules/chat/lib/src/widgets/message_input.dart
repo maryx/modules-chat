@@ -8,7 +8,6 @@ const double _kPaddingValue = 16.0;
 
 /// UI Widget for message text input
 class MessageInput extends StatefulWidget {
-
   /// Callback for when a new message is submitted
   final ValueChanged<String> onSubmitMessage;
 
@@ -16,15 +15,14 @@ class MessageInput extends StatefulWidget {
   MessageInput({
     Key key,
     this.onSubmitMessage,
-  }) : super(key: key);
+  })
+      : super(key: key);
 
   @override
   _MessageInputState createState() => new _MessageInputState();
 }
 
-
 class _MessageInputState extends State<MessageInput> {
-
   InputValue _currentInput = InputValue.empty;
 
   void _handleInputChange(InputValue input) {
@@ -65,7 +63,7 @@ class _MessageInputState extends State<MessageInput> {
       child: new Material(
         color: _currentInput.text.isEmpty ? Colors.grey[300] : primaryColor,
         type: MaterialType.circle,
-        elevation: _currentInput.text.isEmpty ?  2 : 4,
+        elevation: _currentInput.text.isEmpty ? 2 : 4,
         child: new Container(
           width: 40.0,
           height: 40.0,
@@ -74,8 +72,9 @@ class _MessageInputState extends State<MessageInput> {
             child: new Center(
               child: new Icon(
                 Icons.send,
-                color: _currentInput.text.isEmpty ?
-                    Colors.grey[500] : Colors.white,
+                color: _currentInput.text.isEmpty
+                    ? Colors.grey[500]
+                    : Colors.white,
                 size: 16.0,
               ),
             ),
@@ -83,7 +82,6 @@ class _MessageInputState extends State<MessageInput> {
         ),
       ),
     );
-
   }
 
   Widget buildButtonRow(Color primaryColor) {

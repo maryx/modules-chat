@@ -11,6 +11,7 @@ const Radius _kBubbleBorderRadius = const Radius.circular(8.0);
 enum ChatBubbleOrientation {
   /// Chat bubble is on the left side of the screen
   left,
+
   /// Chat bubble is on the right side of the screen
   right,
 }
@@ -19,7 +20,6 @@ enum ChatBubbleOrientation {
 /// A [ChatBubble] has an orientation (left/right) usually based on who the
 /// message belongs to (recipient/sender)
 class ChatBubble extends StatelessWidget {
-
   /// Child widget to embed inside the ChatBubble
   final Widget child;
 
@@ -37,8 +37,9 @@ class ChatBubble extends StatelessWidget {
     ChatBubbleOrientation orientation,
     this.backgroundColor,
     @required this.child,
-  }) : orientation = orientation ?? ChatBubbleOrientation.left,
-      super(key: key) {
+  })
+      : orientation = orientation ?? ChatBubbleOrientation.left,
+        super(key: key) {
     assert(child != null);
   }
 
@@ -46,7 +47,7 @@ class ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     ThemeData theme = Theme.of(context);
     BorderRadius borderRadius;
-    if(orientation == ChatBubbleOrientation.left) {
+    if (orientation == ChatBubbleOrientation.left) {
       borderRadius = const BorderRadius.only(
         bottomRight: _kBubbleBorderRadius,
         topLeft: _kBubbleBorderRadius,

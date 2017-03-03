@@ -9,7 +9,6 @@ import 'chat_thread_list_item.dart';
 
 /// UI Widget that represents a list of chat threads
 class ChatThreadList extends StatelessWidget {
-
   /// List of [ChatThreadListItem]s to render
   ///
   /// TODO(dayang): Pass in the data model representing a chat thread
@@ -24,7 +23,8 @@ class ChatThreadList extends StatelessWidget {
     Key key,
     @required this.chatThreads,
     this.onNewChat,
-  }) : super(key: key) {
+  })
+      : super(key: key) {
     assert(this.chatThreads != null);
   }
 
@@ -42,7 +42,7 @@ class ChatThreadList extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               decoration: new BoxDecoration(
                 border: new Border(
-                  bottom: new BorderSide(color: Colors.grey[300])
+                  bottom: new BorderSide(color: Colors.grey[300]),
                 ),
               ),
               child: new Text(
@@ -54,7 +54,7 @@ class ChatThreadList extends StatelessWidget {
               shrinkWrap: true,
               children: chatThreads,
             ),
-          ]
+          ],
         ),
         new Positioned(
           bottom: 16.0,

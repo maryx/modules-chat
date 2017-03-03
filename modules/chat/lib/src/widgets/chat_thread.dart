@@ -10,7 +10,6 @@ import 'message_input.dart';
 
 /// UI Widget that represents a single chat thread
 class ChatThread extends StatelessWidget {
-
   /// List of [ChatSection]s to render
   ///
   /// TODO(dayang): Pass in the data model representing a chat thread
@@ -25,7 +24,8 @@ class ChatThread extends StatelessWidget {
     Key key,
     @required this.chatSections,
     this.title,
-  }) : super(key: key) {
+  })
+      : super(key: key) {
     assert(this.chatSections != null);
   }
 
@@ -43,9 +43,8 @@ class ChatThread extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               alignment: FractionalOffset.centerLeft,
               decoration: new BoxDecoration(
-                border: new Border(
-                  bottom: new BorderSide(color: Colors.grey[300])
-                ),
+                border:
+                    new Border(bottom: new BorderSide(color: Colors.grey[300])),
               ),
               child: new Text(
                 title ?? 'Chat',

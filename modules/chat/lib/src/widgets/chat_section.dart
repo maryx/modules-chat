@@ -18,8 +18,7 @@ import 'chat_bubble.dart';
 ///
 /// The orientation for the children [ChatBubble]s should be the same as the
 /// [ChatSection]
-class ChatSection extends StatelessWidget{
-
+class ChatSection extends StatelessWidget {
   /// User of the given chat section
   final User user;
 
@@ -41,7 +40,7 @@ class ChatSection extends StatelessWidget{
     ChatBubbleOrientation orientation,
   })
       : orientation = orientation ?? ChatBubbleOrientation.left,
-      super(key: key) {
+        super(key: key) {
     assert(user != null);
     assert(chatBubbles != null);
     chatBubbles.forEach((ChatBubble bubble) {
@@ -58,15 +57,16 @@ class ChatSection extends StatelessWidget{
     Widget chatColumn = new Expanded(
       child: new Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: orientation == ChatBubbleOrientation.left ?
-            CrossAxisAlignment.start : CrossAxisAlignment.end,
+        crossAxisAlignment: orientation == ChatBubbleOrientation.left
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.end,
         children: chatBubbles,
       ),
     );
 
     // Order avatar & chat bubbles depending on orientation
     List<Widget> rowChildren;
-    if(orientation == ChatBubbleOrientation.left) {
+    if (orientation == ChatBubbleOrientation.left) {
       rowChildren = <Widget>[
         alphatar,
         chatColumn,
@@ -86,17 +86,18 @@ class ChatSection extends StatelessWidget{
     );
 
     // Add timestamp if it is given
-    if(timestamp != null) {
+    if (timestamp != null) {
       return new Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: orientation == ChatBubbleOrientation.left ?
-            CrossAxisAlignment.start : CrossAxisAlignment.end,
+        crossAxisAlignment: orientation == ChatBubbleOrientation.left
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.end,
         children: <Widget>[
           sectionContainer,
           new Container(
-            margin: orientation == ChatBubbleOrientation.left ?
-                const EdgeInsets.only(left: 50.0) :
-                const EdgeInsets.only(right: 50.0),
+            margin: orientation == ChatBubbleOrientation.left
+                ? const EdgeInsets.only(left: 50.0)
+                : const EdgeInsets.only(right: 50.0),
             child: new Text(
               TimeUtil.relativeDisplayDate(date: timestamp),
               style: new TextStyle(

@@ -12,7 +12,6 @@ import 'chat_group_avatar.dart';
 /// UI Widget that represents a single chat thread when viewing many chat
 /// threads in a list.
 class ChatThreadListItem extends StatelessWidget {
-
   /// Text snippet representing the chat. This usually is the last message in
   /// the given thread.
   final String snippet;
@@ -33,13 +32,14 @@ class ChatThreadListItem extends StatelessWidget {
     this.onSelect,
     this.snippet,
     this.timestamp,
-  }) : super(key: key) {
+  })
+      : super(key: key) {
     assert(users != null);
     assert(users.isNotEmpty);
   }
 
-  String get _userNames => users.map((User user) => user.name).toList()
-      .join(', ');
+  String get _userNames =>
+      users.map((User user) => user.name).toList().join(', ');
 
   @override
   Widget build(BuildContext context) {
@@ -55,8 +55,8 @@ class ChatThreadListItem extends StatelessWidget {
         snippet ?? '',
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: new Text(timestamp != null ?
-        TimeUtil.relativeDisplayDate(date: timestamp) : '',
+      trailing: new Text(
+        timestamp != null ? TimeUtil.relativeDisplayDate(date: timestamp) : '',
         style: new TextStyle(
           color: Colors.grey[500],
           fontSize: 12.0,

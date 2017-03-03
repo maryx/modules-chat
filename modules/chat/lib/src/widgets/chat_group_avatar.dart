@@ -15,7 +15,6 @@ const double _kBorderSize = 2.0;
 ///
 /// The list of users should not be empty
 class ChatGroupAvatar extends StatelessWidget {
-
   /// List of users to represent as a group
   final List<User> users;
 
@@ -27,14 +26,15 @@ class ChatGroupAvatar extends StatelessWidget {
     Key key,
     @required this.users,
     this.size: 40.0,
-  }) : super(key: key) {
+  })
+      : super(key: key) {
     assert(users != null);
     assert(users.isNotEmpty);
   }
 
   @override
   Widget build(BuildContext context) {
-    if(users.length <= 0) {
+    if (users.length <= 0) {
       return new Offstage();
     } else if (users.length == 1) {
       return new Alphatar.fromUser(
