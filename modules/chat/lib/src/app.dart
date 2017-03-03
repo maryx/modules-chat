@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 
-import 'widgets.dart';
+import 'widgets/home_page.dart';
 
 /// The root application.
 class App extends StatelessWidget {

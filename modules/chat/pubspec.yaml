@@ -8,12 +8,14 @@ description: A new flutter project.
 dependencies:
   flutter:
     sdk: flutter
-  widgets:
-    path: ../../../modules/packages/widgets
   models:
     path: ../../../modules/packages/models
   util:
     path: ../../../modules/packages/util
+  widgets:
+    path: ../../../modules/packages/widgets
+  widgets_meta:
+    path: ../../../modules/packages/widgets_meta
 dev_dependencies:
   test: any
   flutter_test:

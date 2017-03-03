@@ -15,6 +15,7 @@ flutter_app("chat") {
     "//apps/modules/packages/models",
     "//apps/modules/packages/util",
     "//apps/modules/packages/widgets",
+    "//apps/modules/packages/widgets_meta",
     "//apps/mozart/services/views:views_dart",
     "//lib/fidl/dart",
     "//lib/flutter/packages/flutter",

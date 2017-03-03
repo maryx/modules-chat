@@ -4,6 +4,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
+import 'package:widgets/fixtures.dart';
+import 'package:widgets_meta/widgets_meta.dart';
 
 const Radius _kBubbleBorderRadius = const Radius.circular(8.0);
 
@@ -36,7 +38,7 @@ class ChatBubble extends StatelessWidget {
     Key key,
     ChatBubbleOrientation orientation,
     this.backgroundColor,
-    @required this.child,
+    @required @Generator(WidgetFixtures, 'sentenceText') this.child,
   })
       : orientation = orientation ?? ChatBubbleOrientation.left,
         super(key: key) {
