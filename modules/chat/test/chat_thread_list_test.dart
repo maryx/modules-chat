@@ -2,11 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'package:chat/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import '../lib/src/widgets/chat_thread_list.dart';
-import '../lib/src/widgets/chat_thread_list_item.dart';
 
 void main() {
   testWidgets(
