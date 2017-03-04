@@ -5,8 +5,8 @@
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 import 'package:models/user.dart';
-import 'package:widgets/user.dart';
 import 'package:util/time_util.dart';
+import 'package:widgets/user.dart';
 
 import 'chat_bubble.dart';
 
