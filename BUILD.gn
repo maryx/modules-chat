@@ -7,3 +7,11 @@ group("chat") {
     "//apps/chat/modules",
   ]
 }
+
+group("test") {
+  testonly = true
+
+  deps = [
+    "//apps/chat/modules/chat/test",
+  ]
+}
