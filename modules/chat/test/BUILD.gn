@@ -8,10 +8,10 @@ dart_test("test") {
   source_dir = "."
 
   deps = [
-    "//apps/chat/modules/chat:chat_dart_package",
+    "//apps/modules/chat/modules/chat:chat_dart_package",
     "//lib/flutter/packages/flutter_test",
     "//third_party/dart-pkg/pub/test",
   ]
 
-  analysis_options = "//apps/modules/.analysis_options"
+  analysis_options = "//apps/modules/common/.analysis_options"
 }

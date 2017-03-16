@@ -9,13 +9,13 @@ dependencies:
   flutter:
     sdk: flutter
   models:
-    path: ../../../modules/packages/models
+    path: ../../../common/packages/models
   util:
-    path: ../../../modules/packages/util
+    path: ../../../common/packages/util
   widgets:
-    path: ../../../modules/packages/widgets
+    path: ../../../common/packages/widgets
   widgets_meta:
-    path: ../../../modules/packages/widgets_meta
+    path: ../../../common/packages/widgets_meta
 dev_dependencies:
   test: any
   flutter_test:

@@ -15,14 +15,14 @@ flutter_app("chat") {
     "//application/lib/app/dart",
     "//apps/modular/services/module:module_dart",
     "//apps/modular/services/story:story_dart",
-    "//apps/modules/packages/models",
-    "//apps/modules/packages/util",
-    "//apps/modules/packages/widgets",
-    "//apps/modules/packages/widgets_meta",
+    "//apps/modules/common/packages/models",
+    "//apps/modules/common/packages/util",
+    "//apps/modules/common/packages/widgets",
+    "//apps/modules/common/packages/widgets_meta",
     "//apps/mozart/services/views:views_dart",
     "//lib/fidl/dart",
     "//lib/flutter/packages/flutter",
   ]
 
-  analysis_options = "//apps/modules/.analysis_options"
+  analysis_options = "//apps/modules/common/.analysis_options"
 }
