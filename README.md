@@ -11,8 +11,6 @@ This repo contains code for running a vanilla [Flutter][flutter] application (iO
 
 * **modules**: Fuchsia application code using Modular APIs.
   * **chat**: Is a Flutter app with two entry points, one for Fuchsia and one for Vanilla Flutter.
-* **services**: [FIDL][fidl] service definitions.
-* **tools**: Development helper scripts.
 
 # Development
 
