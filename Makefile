@@ -12,6 +12,6 @@ common_makefile := $(realpath $(common_root)/Makefile)
 
 PROJECT := chat
 FLUTTER_TARGET := modules/chat
-FUCHSIA_TARGET := chat
+FUCHSIA_TARGET := modules/chat
 
 include $(common_makefile)
