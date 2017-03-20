@@ -4,6 +4,8 @@
 
 import 'package:flutter/material.dart';
 
+import 'fuchsia_compatible_input_field.dart';
+
 const double _kPaddingValue = 16.0;
 
 /// UI Widget for message text input
@@ -150,7 +152,7 @@ class _MessageInputState extends State<MessageInput> {
                 left: _kPaddingValue,
                 right: _kPaddingValue,
               ),
-              child: new InputField(
+              child: new FuchsiaCompatibleInputField(
                 onChanged: _handleInputChange,
                 value: _currentInput,
                 hintText: 'Send a message',
