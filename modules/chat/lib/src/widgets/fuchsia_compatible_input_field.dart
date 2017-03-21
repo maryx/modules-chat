@@ -5,8 +5,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'blinking_cursor.dart';
+
 const int _kHidUsageKeyboardReturn = 40;
 const int _kHidUsageKeyboardBackspace = 42;
+
+const Duration _kCursorDuration = const Duration(milliseconds: 500);
 
 /// A fuchsia-compatible [InputField] replacement.
 ///
@@ -175,26 +179,65 @@ class _RawKeyboardInputFieldState extends State<RawKeyboardInputField> {
       behavior: HitTestBehavior.opaque,
       onTap: _acquireFocus,
       child: new Builder(
-        builder: (BuildContext context) => new RawKeyboardListener(
-              key: _rawKeyboardListenerKey,
-              onKey: _handleKey,
-              focused: Focus.at(focusKey.currentContext),
-              // TODO(youngseokyoon): add blinking cursor.
-              child: _buildText(context),
-            ),
+        builder: (BuildContext context) {
+          bool focused = Focus.at(focusKey.currentContext);
+
+          return new RawKeyboardListener(
+            key: _rawKeyboardListenerKey,
+            onKey: _handleKey,
+            focused: focused,
+            child: _buildText(context, focused),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildText(BuildContext context) {
+  Widget _buildText(BuildContext context, bool focused) {
     final ThemeData themeData = Theme.of(context);
     final TextStyle textStyle = config.style ?? themeData.textTheme.subhead;
     final TextStyle hintStyle =
         config.hintStyle ?? textStyle.copyWith(color: themeData.hintColor);
 
-    return _currentText.isEmpty && config.hintText != null
-        ? new Text(config.hintText, style: hintStyle)
-        : new Text(_displayText, style: textStyle);
+    bool shouldDisplayHintText =
+        _currentText.isEmpty && config.hintText != null;
+
+    Text text = shouldDisplayHintText
+        ? new Text(config.hintText, style: hintStyle, maxLines: 1)
+        : new Text(_displayText, style: textStyle, maxLines: 1);
+
+    double lineHeight = _getLineHeight(text);
+
+    List<Widget> children = <Widget>[text];
+    if (focused) {
+      children.insert(
+        shouldDisplayHintText ? 1 : 0,
+        new BlinkingCursor(
+          color: themeData.textSelectionColor,
+          height: lineHeight,
+          duration: _kCursorDuration,
+        ),
+      );
+    }
+
+    return new Container(
+      height: lineHeight,
+      child: new ListView(
+        scrollDirection: Axis.horizontal,
+        reverse: true,
+        children: children,
+        shrinkWrap: true,
+      ),
+    );
+  }
+
+  double _getLineHeight(Text text) {
+    TextPainter painter = new TextPainter(
+      text: new TextSpan(text: text.data, style: text.style),
+      maxLines: text.maxLines,
+    );
+
+    return painter.preferredLineHeight;
   }
 
   void _acquireFocus() {

@@ -67,7 +67,7 @@ class ChatThread extends StatelessWidget {
           child: new MessageInput(
             onSubmitMessage: (String msg) => print('Message: $msg'),
           ),
-        )
+        ),
       ],
     );
   }
