@@ -45,6 +45,12 @@ class _BlinkingCursorState extends State<BlinkingCursor> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+    _timer?.cancel();
+  }
+
+  @override
   Widget build(_) => new Container(
       width: 1.0,
       height: config.height,
