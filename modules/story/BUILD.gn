@@ -1,0 +1,28 @@
+# Copyright 2017 The Fuchsia Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("//flutter/build/flutter_app.gni")
+
+flutter_app("chat_story") {
+  package_name = "chat_story"
+
+  main_dart = "lib/modular_main.dart"
+
+  source_dir = "lib"
+
+  deps = [
+    "//application/lib/app/dart",
+    "//apps/modular/services/module:module_dart",
+    "//apps/modular/services/story:story_dart",
+    "//apps/modules/common/packages/models",
+    "//apps/modules/common/packages/util",
+    "//apps/modules/common/packages/widgets",
+    "//apps/modules/common/packages/widgets_meta",
+    "//apps/mozart/services/views:views_dart",
+    "//lib/fidl/dart",
+    "//lib/flutter/packages/flutter",
+  ]
+
+  analysis_options = "//apps/modules/common/.analysis_options"
+}

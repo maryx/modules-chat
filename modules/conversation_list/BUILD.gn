@@ -4,8 +4,8 @@
 
 import("//flutter/build/flutter_app.gni")
 
-flutter_app("chat") {
-  package_name = "chat"
+flutter_app("chat_conversation_list") {
+  package_name = "chat_conversation_list"
 
   main_dart = "lib/modular_main.dart"
 
@@ -15,10 +15,6 @@ flutter_app("chat") {
     "//application/lib/app/dart",
     "//apps/modular/services/module:module_dart",
     "//apps/modular/services/story:story_dart",
-    "//apps/modules/common/packages/models",
-    "//apps/modules/common/packages/util",
-    "//apps/modules/common/packages/widgets",
-    "//apps/modules/common/packages/widgets_meta",
     "//apps/mozart/services/views:views_dart",
     "//lib/fidl/dart",
     "//lib/flutter/packages/flutter",

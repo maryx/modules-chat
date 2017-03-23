@@ -4,6 +4,7 @@
 
 group("chat") {
   deps = [
+    "//apps/modules/chat/agents",
     "//apps/modules/chat/modules",
   ]
 }
@@ -12,6 +13,6 @@ group("test") {
   testonly = true
 
   deps = [
-    "//apps/modules/chat/modules/chat/test",
+    "//apps/modules/chat/modules/story/test",
   ]
 }
