@@ -15,3 +15,10 @@ FLUTTER_TARGET := modules/chat
 FUCHSIA_TARGET := modules/chat
 
 include $(common_makefile)
+
+
+################################################################################
+## Project specific build
+.PHONY: build-override
+build-override:
+	@true
