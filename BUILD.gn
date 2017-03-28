@@ -6,6 +6,7 @@ group("chat") {
   deps = [
     "//apps/modules/chat/agents",
     "//apps/modules/chat/modules",
+    "//apps/modules/chat/services",
   ]
 }
 

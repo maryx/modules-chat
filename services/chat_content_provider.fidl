@@ -1,0 +1,89 @@
+// Copyright 2017 The Fuchsia Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+module chat_content_provider;
+
+// TODO(youngseokyoon): consider adding status codes to all operations.
+
+// Represents a chat user.
+struct User {
+  // Email address for the user.
+  // This email address will be the unique ID of this user in the chat app.
+  string email_address;
+
+  // Display name for the user.
+  string display_name;
+
+  // Profile picture url for the user (can be null).
+  string? profile_picture_url;
+};
+
+// Contains metadata of a chat conversation (i.e. chat room).
+// This struct does not contain the actual message history, and the messages
+// must be retrieved from the |ChatContentProvider| interface using
+// |GetMessageHistory| method.
+struct Conversation {
+  // Unique id of this conversation.
+  array<uint8> conversation_id;
+
+  // List of users participating in this conversation, including the current
+  // user.
+  array<User> participants;
+};
+
+// Represents a chat message.
+struct Message {
+  // Unique id of this message.
+  array<uint8> message_id;
+
+  // Timestamp at which this message was created.
+  // Ideally, this value will be the same as the timestamp value automatically
+  // created by the Firebase DB.
+  int64 timestamp;
+
+  // The email address of the sender.
+  string sender;
+
+  // Message type (text, image, module).
+  string type;
+
+  // JSON string containing the message content.
+  string json_payload;
+};
+
+[ServiceName="chat_content_provider.ChatContentProvider"]
+interface ChatContentProvider {
+  // TODO(youngseokyoon): remove if this is not needed.
+  Me() => (User user);
+
+  // Gets the |User| data associated with the given email address.
+  // Return value can be null if there is no user with the given email address.
+  GetUser(string email_address) => (User? user);
+
+  // Returns the list of metadata of all existing conversations.
+  // To obtain the conversation history, use the |GetMessageHistory| method with
+  // the obtained conversation id.
+  GetConversations() => (array<Conversation> conversations);
+
+  // Gets the list of all messages in the specified conversation.
+  // TODO(youngseokyoon): provide a way to retrieve recent messages only.
+  GetMessageHistory(array<uint8> conversation_id) => (array<Message> messages);
+
+  // Gets the message associated with the given message id.
+  // The returned message can be null if the specified message does not exist.
+  GetMessage(array<uint8> message_id) => (Message? message);
+
+  // Gets the last message of the specified conversation.
+  // The returned message can be null if the specified conversation does not
+  // exist or the conversation is empty.
+  // Intended to be used by the chat_conversation_list module.
+  GetLastMessage(array<uint8> conversation_id) => (Message? message);
+
+  // Sends a new message to the specified conversation.
+  // Returns the created message id.
+  SendMessage(array<uint8> conversation_id, string type, string json_payload)
+      => (array<uint8> message_id);
+
+  // TODO(youngseokyoon): add suggestion/notification related functions.
+};
