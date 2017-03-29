@@ -8,7 +8,7 @@ dart_test("test") {
   source_dir = "."
 
   deps = [
-    "//apps/modules/chat/modules/story:chat_story_dart_package",
+    "//apps/modules/chat/modules/conversation:chat_conversation_dart_package",
     "//lib/flutter/packages/flutter_test",
     "//third_party/dart-pkg/pub/test",
   ]

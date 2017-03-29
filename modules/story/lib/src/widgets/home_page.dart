@@ -2,14 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'package:chat_conversation/widgets.dart';
+import 'package:chat_conversation_list/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:models/user.dart';
-
-import 'chat_bubble.dart';
-import 'chat_section.dart';
-import 'chat_thread.dart';
-import 'chat_thread_list.dart';
-import 'chat_thread_list_item.dart';
 
 /// MyHomePage widget.
 class MyHomePage extends StatelessWidget {

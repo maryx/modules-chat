@@ -10,7 +10,10 @@ import 'package:apps.maxwell.services.suggestion/proposal_publisher.fidl.dart';
 import 'package:apps.modular.services.agent/agent.fidl.dart';
 import 'package:apps.modular.services.agent/agent_context.fidl.dart';
 import 'package:apps.modular.services.component/component_context.fidl.dart';
+import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart';
 import 'package:lib.fidl.dart/bindings.dart';
+
+import 'src/chat_content_provider_impl.dart';
 
 final ApplicationContext _context = new ApplicationContext.fromStartupInfo();
 ChatContentProviderAgent _agent;
@@ -21,29 +24,44 @@ void _log(String msg) {
 
 /// An implementation of the [Agent] interface.
 class ChatContentProviderAgent extends Agent {
-  AgentBinding _agentBinding;
-  ComponentContextProxy _componentContext;
+  final AgentBinding _agentBinding = new AgentBinding();
+  final ComponentContextProxy _componentContext = new ComponentContextProxy();
 
   final ServiceProviderImpl _outgoingServicesImpl = new ServiceProviderImpl();
   final List<ServiceProviderBinding> _outgoingServicesBindings =
-      new List<ServiceProviderBinding>();
+      <ServiceProviderBinding>[];
+  final ChatContentProviderImpl _contentProviderImpl =
+      new ChatContentProviderImpl();
 
-  /// Constructor.
-  ChatContentProviderAgent(InterfaceRequest<Agent> request) {
-    _agentBinding = new AgentBinding()..bind(this, request);
+  /// Bind an [InterfaceRequest] for an [Agent] interface to this object.
+  void bind(InterfaceRequest<Agent> request) {
+    _agentBinding.bind(this, request);
   }
 
   /// Implements [Agent] interface.
   @override
   Future<Null> initialize(
-      InterfaceHandle<AgentContext> agentContextHandle) async {
+    InterfaceHandle<AgentContext> agentContextHandle,
+  ) async {
     _log('Initialize called');
 
     // Get the ComponentContext
     AgentContextProxy agentContext = new AgentContextProxy()
       ..ctrl.bind(agentContextHandle);
-    _componentContext = new ComponentContextProxy();
     agentContext.getComponentContext(_componentContext.ctrl.request());
+
+    // Initialize the content provider.
+    await _contentProviderImpl.initialize();
+
+    // Register the ChatContentProvider service to the outgoingServices
+    // service provider.
+    _outgoingServicesImpl.addServiceForName(
+      (InterfaceRequest<ChatContentProvider> request) {
+        _log('Received a ChatContentProvider request');
+        _contentProviderImpl.addBinding(request);
+      },
+      ChatContentProvider.serviceName,
+    );
 
     // Get the ProposalPublisher
     ProposalPublisherProxy proposalPublisher = new ProposalPublisherProxy();
@@ -56,9 +74,12 @@ class ChatContentProviderAgent extends Agent {
   /// Implements [Agent] interface.
   @override
   void connect(
-      String requestorUrl, InterfaceRequest<ServiceProvider> services) {
+    String requestorUrl,
+    InterfaceRequest<ServiceProvider> services,
+  ) {
     _outgoingServicesBindings.add(
-        new ServiceProviderBinding()..bind(_outgoingServicesImpl, services));
+      new ServiceProviderBinding()..bind(_outgoingServicesImpl, services),
+    );
   }
 
   /// Implements [Agent] interface.
@@ -72,6 +93,7 @@ class ChatContentProviderAgent extends Agent {
 
     _outgoingServicesBindings
         .forEach((ServiceProviderBinding binding) => binding.close());
+
     callback();
   }
 }
@@ -81,7 +103,7 @@ Future<Null> main(List<String> args) async {
   _context.outgoingServices.addServiceForName(
       (InterfaceRequest<Agent> request) {
     if (_agent == null) {
-      _agent = new ChatContentProviderAgent(request);
+      _agent = new ChatContentProviderAgent()..bind(request);
     } else {
       // Can only connect to this interface once.
       request.close();

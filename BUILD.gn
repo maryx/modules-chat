@@ -14,6 +14,7 @@ group("test") {
   testonly = true
 
   deps = [
-    "//apps/modules/chat/modules/story/test",
+    "//apps/modules/chat/modules/conversation/test",
+    "//apps/modules/chat/modules/conversation_list/test",
   ]
 }
