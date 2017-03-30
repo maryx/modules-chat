@@ -11,8 +11,8 @@ common_root := $(realpath $(fuchsia_root)/apps/modules/common/tools/common)
 common_makefile := $(realpath $(common_root)/Makefile)
 
 PROJECT := chat
-FLUTTER_TARGET := modules/chat
-FUCHSIA_TARGET := modules/chat
+FLUTTER_TARGET := modules/story
+FUCHSIA_TARGET := chat_story
 
 include $(common_makefile)
 
