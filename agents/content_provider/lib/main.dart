@@ -41,8 +41,8 @@ class ChatContentProviderAgent extends Agent {
   /// Implements [Agent] interface.
   @override
   Future<Null> initialize(
-    InterfaceHandle<AgentContext> agentContextHandle,
-  ) async {
+      InterfaceHandle<AgentContext> agentContextHandle,
+      void callback()) async {
     _log('Initialize called');
 
     // Get the ComponentContext
@@ -69,6 +69,8 @@ class ChatContentProviderAgent extends Agent {
 
     agentContext.ctrl.close();
     proposalPublisher.ctrl.close();
+
+    callback();
   }
 
   /// Implements [Agent] interface.
