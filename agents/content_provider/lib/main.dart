@@ -41,9 +41,8 @@ class ChatContentProviderAgent extends Agent {
   /// Implements [Agent] interface.
   @override
   Future<Null> initialize(
-      InterfaceHandle<AgentContext> agentContextHandle,
-      void callback()) async {
-    _log('Initialize called');
+      InterfaceHandle<AgentContext> agentContextHandle, void callback()) async {
+    _log('Agent::initialize start.');
 
     // Get the ComponentContext
     AgentContextProxy agentContext = new AgentContextProxy()
@@ -70,15 +69,18 @@ class ChatContentProviderAgent extends Agent {
     agentContext.ctrl.close();
     proposalPublisher.ctrl.close();
 
+    _log('Agent::initialize end.');
+
     callback();
   }
 
   /// Implements [Agent] interface.
   @override
-  void connect(
+  Future<Null> connect(
     String requestorUrl,
     InterfaceRequest<ServiceProvider> services,
-  ) {
+  ) async {
+    _log('Agent::connect call from $requestorUrl.');
     _outgoingServicesBindings.add(
       new ServiceProviderBinding()..bind(_outgoingServicesImpl, services),
     );

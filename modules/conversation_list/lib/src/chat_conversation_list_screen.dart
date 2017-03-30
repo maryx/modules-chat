@@ -10,6 +10,10 @@ import 'package:models/user.dart';
 
 import 'widgets.dart';
 
+void _log(String msg) {
+  print('[chat_conversation_list_screen] $msg');
+}
+
 /// Top-level widget for the chat_conversation_list module.
 class ChatConversationListScreen extends StatefulWidget {
   /// Creates a new instance of [ChatConversationListScreen].
@@ -37,8 +41,10 @@ class _ChatConversationListScreenState
     super.initState();
 
     // Initiate the fetch.
+    _log('Calling getConversations.');
     config.chatContentProvider
         .getConversations((List<ccp.Conversation> conversations) {
+      _log('getConversations callback.');
       setState(() {
         chatThreads = conversations
             .map((ccp.Conversation c) => new ChatThreadListItem(
@@ -56,6 +62,7 @@ class _ChatConversationListScreenState
             .toList();
       });
     });
+    _log('Called getConversations.');
   }
 
   @override

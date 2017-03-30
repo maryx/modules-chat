@@ -10,6 +10,10 @@ import 'package:models/user.dart';
 
 import 'widgets.dart';
 
+void _log(String msg) {
+  print('[chat_conversation_screen] $msg');
+}
+
 /// Top-level widget for the chat_conversation module.
 class ChatConversationScreen extends StatefulWidget {
   /// Creates a new instance of [ChatConversationScreen].
@@ -42,9 +46,11 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     super.initState();
 
     // Initiate the fetch.
+    _log('Calling getMessageHistory');
     config.chatContentProvider.getMessageHistory(
       config.conversationId?.codeUnits ?? '',
       (List<ccp.Message> messages) {
+        _log('getMessageHistory callback.');
         setState(() {
           chatSections = messages
               .map((ccp.Message message) => new ChatSection(
@@ -60,6 +66,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         });
       },
     );
+    _log('Called getMessageHistory');
   }
 
   @override
