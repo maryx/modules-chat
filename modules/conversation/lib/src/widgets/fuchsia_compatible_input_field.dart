@@ -36,7 +36,7 @@ class FuchsiaCompatibleInputField extends StatelessWidget {
       : super(key: key);
 
   /// Controls whether this widget has keyboard focus.
-  final GlobalKey focusNode;
+  final FocusNode focusNode;
 
   /// The current state of text of the input field. This includes the selected
   /// text, if any, among other things.
@@ -159,7 +159,8 @@ class RawKeyboardInputField extends StatefulWidget {
 
 class _RawKeyboardInputFieldState extends State<RawKeyboardInputField> {
   FocusNode _focusNode;
-  FocusNode get _effectiveFocusNode => config.focusNode ?? (_focusNode ??= new FocusNode());
+  FocusNode get _effectiveFocusNode =>
+      config.focusNode ?? (_focusNode ??= new FocusNode());
 
   String get _currentText => config.value?.text ?? '';
 
@@ -185,7 +186,11 @@ class _RawKeyboardInputFieldState extends State<RawKeyboardInputField> {
       child: new RawKeyboardListener(
         focusNode: focusNode,
         onKey: _handleKey,
-        child: _buildText(context, focused),
+        child: new AnimatedBuilder(
+          animation: focusNode,
+          builder: (BuildContext context, Widget _) =>
+              _buildText(context, focusNode.hasFocus),
+        ),
       ),
     );
   }
