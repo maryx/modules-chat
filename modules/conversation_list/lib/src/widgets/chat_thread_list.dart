@@ -40,6 +40,7 @@ class ChatThreadList extends StatelessWidget {
             new Container(
               height: 56.0,
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: FractionalOffset.centerLeft,
               decoration: new BoxDecoration(
                 border: new Border(
                   bottom: new BorderSide(color: Colors.grey[300]),
