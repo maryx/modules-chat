@@ -4,7 +4,7 @@
 
 # Structure
 
-This repo contains code for running a vanilla [Flutter][flutter] application (iOS & Android) and a [Fuchsia][fuchsia] specific set of [modules][modular].
+This repo contains code for running a [Fuchsia][fuchsia] specific set of Chat [modules][modular].
 
 * **agents**: Fuchsia agents (background services) using Modular APIs.
   * **content_provider**: The chat content provider agent which communicates with the firebase DB and the [Ledger][ledger] instance.

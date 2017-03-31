@@ -7,7 +7,7 @@ import("//flutter/build/flutter_app.gni")
 flutter_app("chat_conversation") {
   package_name = "chat_conversation"
 
-  main_dart = "lib/modular_main.dart"
+  main_dart = "lib/main.dart"
 
   source_dir = "lib"
 
