@@ -13,10 +13,14 @@ class MessageInput extends StatefulWidget {
   /// Callback for when a new message is submitted
   final ValueChanged<String> onSubmitMessage;
 
+  /// Callback for when the share photo button is tapped
+  final VoidCallback onTapSharePhoto;
+
   /// Constructor
   MessageInput({
     Key key,
     this.onSubmitMessage,
+    this.onTapSharePhoto,
   })
       : super(key: key);
 
@@ -58,10 +62,7 @@ class _MessageInputState extends State<MessageInput> {
 
   Widget buildSendButton(Color primaryColor) {
     return new Container(
-      padding: const EdgeInsets.only(
-        right: _kPaddingValue,
-        bottom: _kPaddingValue,
-      ),
+      padding: const EdgeInsets.all(_kPaddingValue),
       child: new Material(
         color: _currentInput.text.isEmpty ? Colors.grey[300] : primaryColor,
         type: MaterialType.circle,
@@ -86,49 +87,6 @@ class _MessageInputState extends State<MessageInput> {
     );
   }
 
-  Widget buildButtonRow(Color primaryColor) {
-    return new Stack(
-      children: <Widget>[
-        new Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          // TODO(dayang): These "attachment buttons" are scaffolded for now
-          // We will need to work with design to figure out the exact buttons
-          // to have.
-          //
-          // SO-203
-          // https://fuchsia.atlassian.net/browse/SO-203
-          children: <Widget>[
-            buildAttachmentButton(
-              icon: Icons.photo,
-              onPressed: () {},
-            ),
-            buildAttachmentButton(
-              icon: Icons.camera_alt,
-              onPressed: () {},
-            ),
-            buildAttachmentButton(
-              icon: Icons.videocam,
-              onPressed: () {},
-            ),
-            buildAttachmentButton(
-              icon: Icons.gif,
-              onPressed: () {},
-            ),
-            buildAttachmentButton(
-              icon: Icons.location_on,
-              onPressed: () {},
-            ),
-          ],
-        ),
-        new Positioned(
-          bottom: 0.0,
-          right: 0.0,
-          child: buildSendButton(primaryColor),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     ThemeData theme = Theme.of(context);
@@ -142,24 +100,22 @@ class _MessageInputState extends State<MessageInput> {
       ),
       child: new Material(
         color: Colors.white,
-        child: new Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+        child: new Row(
           children: <Widget>[
-            new Container(
-              padding: const EdgeInsets.only(
-                top: _kPaddingValue,
-                left: _kPaddingValue,
-                right: _kPaddingValue,
-              ),
+            buildAttachmentButton(
+              icon: Icons.photo,
+              onPressed: () => config.onTapSharePhoto?.call(),
+            ),
+            new Expanded(
+              flex: 1,
               child: new FuchsiaCompatibleInputField(
                 onChanged: _handleInputChange,
                 value: _currentInput,
-                hintText: 'Send a message',
+                hintText: 'Type a message',
                 onSubmitted: (_) => _handleSubmit(),
               ),
             ),
-            buildButtonRow(theme.primaryColor),
+            buildSendButton(theme.primaryColor),
           ],
         ),
       ),

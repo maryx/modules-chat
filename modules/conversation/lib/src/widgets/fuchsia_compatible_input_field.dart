@@ -208,7 +208,7 @@ class _RawKeyboardInputFieldState extends State<RawKeyboardInputField> {
     List<Widget> children = <Widget>[text];
     if (focused) {
       children.insert(
-        shouldDisplayHintText ? 1 : 0,
+        shouldDisplayHintText ? 0 : 1,
         new BlinkingCursor(
           color: themeData.textSelectionColor,
           height: lineHeight,
@@ -221,9 +221,7 @@ class _RawKeyboardInputFieldState extends State<RawKeyboardInputField> {
       height: lineHeight,
       child: new ListView(
         scrollDirection: Axis.horizontal,
-        reverse: true,
         children: children,
-        shrinkWrap: true,
       ),
     );
   }
