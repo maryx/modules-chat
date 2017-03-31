@@ -90,17 +90,35 @@ class ChatContentProviderImpl extends ChatContentProvider {
       }),
     );
 
+    if (identityToolkitResponse.statusCode != 200 ||
+        (identityToolkitResponse.body?.isEmpty ?? true)) {
+      throw new Exception(
+          'identityToolkit#verifyAssertion call was unsuccessful.\n'
+          'status code: ${identityToolkitResponse.statusCode}\n'
+          'body: ${identityToolkitResponse.body}');
+    }
+
     // Parse the response.
-    // TODO(youngseokyoon): add more explicit error handling.
-    dynamic identityJson = JSON.decode(identityToolkitResponse.body);
-    _firebaseUid = identityJson['localId'];
-    _email = _normalizeEmail(identityJson['email']);
-    _firebaseAuthToken = identityJson['idToken'];
+    String responseBody = identityToolkitResponse.body;
+    dynamic responseJson;
+    try {
+      responseJson = JSON.decode(responseBody);
+    } catch (e) {
+      throw new Exception(
+          'Error parsing JSON response from identityToolkit#verifyAssertion '
+          'response.\n'
+          'body: $responseBody');
+    }
+
+    _firebaseUid = responseJson['localId'];
+    _email = _normalizeEmail(responseJson['email']);
+    _firebaseAuthToken = responseJson['idToken'];
 
     if (_firebaseUid == null || _email == null || _firebaseAuthToken == null) {
       throw new Exception(
-          'Failed to initialize: could not parse the response from the '
-          'identitytoolkit API\n: ${identityToolkitResponse.body}');
+          'identityToolkit#verifyAssertion response is missing one of the '
+          'expected parameters (localId, email, idToken).\n'
+          'body: $responseBody');
     }
   }
 
