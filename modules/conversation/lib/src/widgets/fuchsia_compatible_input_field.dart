@@ -24,7 +24,7 @@ class FuchsiaCompatibleInputField extends StatelessWidget {
   /// Creates a new instance of [FuchsiaCompatibleInputField].
   FuchsiaCompatibleInputField({
     Key key,
-    this.focusKey,
+    this.focusNode,
     this.value,
     this.hintText,
     this.style,
@@ -35,8 +35,8 @@ class FuchsiaCompatibleInputField extends StatelessWidget {
   })
       : super(key: key);
 
-  /// Global key of the widget that holds the focus.
-  final GlobalKey focusKey;
+  /// Controls whether this widget has keyboard focus.
+  final GlobalKey focusNode;
 
   /// The current state of text of the input field. This includes the selected
   /// text, if any, among other things.
@@ -75,7 +75,7 @@ class FuchsiaCompatibleInputField extends StatelessWidget {
     ThemeData theme = Theme.of(context);
     if (theme.platform == TargetPlatform.fuchsia) {
       return new RawKeyboardInputField(
-        focusKey: focusKey,
+        focusNode: focusNode,
         value: value,
         hintText: hintText,
         style: style,
@@ -86,7 +86,7 @@ class FuchsiaCompatibleInputField extends StatelessWidget {
       );
     } else {
       return new InputField(
-        focusKey: focusKey,
+        focusNode: focusNode,
         value: value,
         hintText: hintText,
         style: style,
@@ -106,7 +106,7 @@ class RawKeyboardInputField extends StatefulWidget {
   /// Creates a new instance of [RawKeyboardInputField].
   RawKeyboardInputField({
     Key key,
-    this.focusKey,
+    this.focusNode,
     this.value,
     this.hintText,
     this.style,
@@ -117,8 +117,8 @@ class RawKeyboardInputField extends StatefulWidget {
   })
       : super(key: key);
 
-  /// Global key of the widget that holds the focus.
-  final GlobalKey focusKey;
+  /// Controls whether this widget has keyboard focus.
+  final FocusNode focusNode;
 
   /// The current state of text of the input field. This includes the selected
   /// text, if any, among other things.
@@ -158,12 +158,8 @@ class RawKeyboardInputField extends StatefulWidget {
 }
 
 class _RawKeyboardInputFieldState extends State<RawKeyboardInputField> {
-  final GlobalKey _rawKeyboardListenerKey = new GlobalKey();
-  final GlobalKey<_RawKeyboardInputFieldState> _focusKey =
-      new GlobalKey<_RawKeyboardInputFieldState>();
-
-  GlobalKey get focusKey =>
-      config.focusKey ?? (config.key is GlobalKey ? config.key : _focusKey);
+  FocusNode _focusNode;
+  FocusNode get _effectiveFocusNode => config.focusNode ?? (_focusNode ??= new FocusNode());
 
   String get _currentText => config.value?.text ?? '';
 
@@ -173,22 +169,23 @@ class _RawKeyboardInputFieldState extends State<RawKeyboardInputField> {
       : _currentText;
 
   @override
+  void dispose() {
+    _focusNode?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final FocusNode focusNode = _effectiveFocusNode;
+    FocusScope.of(context).reparentIfNeeded(focusNode);
+
     return new GestureDetector(
-      key: focusKey == _focusKey ? _focusKey : null,
       behavior: HitTestBehavior.opaque,
       onTap: _acquireFocus,
-      child: new Builder(
-        builder: (BuildContext context) {
-          bool focused = Focus.at(focusKey.currentContext);
-
-          return new RawKeyboardListener(
-            key: _rawKeyboardListenerKey,
-            onKey: _handleKey,
-            focused: focused,
-            child: _buildText(context, focused),
-          );
-        },
+      child: new RawKeyboardListener(
+        focusNode: focusNode,
+        onKey: _handleKey,
+        child: _buildText(context, focused),
       ),
     );
   }
@@ -241,9 +238,7 @@ class _RawKeyboardInputFieldState extends State<RawKeyboardInputField> {
   }
 
   void _acquireFocus() {
-    setState(() {
-      Focus.moveTo(focusKey);
-    });
+    FocusScope.of(context).requestFocus(_effectiveFocusNode);
   }
 
   void _handleKey(RawKeyEvent event) {
