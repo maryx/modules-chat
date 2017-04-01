@@ -8,22 +8,22 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets(
-      'FuchsiaCompatibleInputField should use a RawKeyboardInputField when the '
+      'FuchsiaCompatibleTextField should use a RawKeyboardTextField when the '
       'current platform is Fuchsia.', (WidgetTester tester) async {
     await tester.pumpWidget(
       new Theme(
         data: new ThemeData(platform: TargetPlatform.fuchsia),
         child: new Material(
-          child: new FuchsiaCompatibleInputField(),
+          child: new FuchsiaCompatibleTextField(),
         ),
       ),
     );
 
-    expect(tester.widget(find.byType(RawKeyboardInputField)), isNotNull);
+    expect(tester.widget(find.byType(RawKeyboardTextField)), isNotNull);
   });
 
   testWidgets(
-      'FuchsiaCompatibleInputField should use a normal InputField when the '
+      'FuchsiaCompatibleTextField should use a normal TextField when the '
       'current platform is not Fuchsia.', (WidgetTester tester) async {
     List<TargetPlatform> platforms = <TargetPlatform>[
       TargetPlatform.android,
@@ -35,27 +35,27 @@ void main() {
         new Theme(
           data: new ThemeData(platform: platform),
           child: new Material(
-            child: new FuchsiaCompatibleInputField(),
+            child: new FuchsiaCompatibleTextField(),
           ),
         ),
       );
 
-      expect(tester.widget(find.byType(InputField)), isNotNull);
+      expect(tester.widget(find.byType(TextField)), isNotNull);
     }
   });
 
   testWidgets(
-      'FuchsiaCompatibleInputField should use a RawKeyboardInputField when the '
+      'FuchsiaCompatibleTextField should use a RawKeyboardTextField when the '
       'current platform is Fuchsia.', (WidgetTester tester) async {
     await tester.pumpWidget(
       new Theme(
         data: new ThemeData(platform: TargetPlatform.fuchsia),
         child: new Material(
-          child: new FuchsiaCompatibleInputField(),
+          child: new FuchsiaCompatibleTextField(),
         ),
       ),
     );
 
-    expect(tester.widget(find.byType(RawKeyboardInputField)), isNotNull);
+    expect(tester.widget(find.byType(RawKeyboardTextField)), isNotNull);
   });
 }

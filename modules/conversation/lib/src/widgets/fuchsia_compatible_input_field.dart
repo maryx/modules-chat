@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,47 +13,51 @@ const int _kHidUsageKeyboardBackspace = 42;
 
 const Duration _kCursorDuration = const Duration(milliseconds: 500);
 
-/// A fuchsia-compatible [InputField] replacement.
+/// A fuchsia-compatible [TextField] replacement.
 ///
-/// When the current platform is Fuchsia, it uses the [RawKeyboardInputField]
+/// When the current platform is Fuchsia, it uses the [RawKeyboardTextField]
 /// using the [RawKeyboardListener].
 ///
-/// Otherwise, it fallbacks to the regular [InputField] widget.
+/// Otherwise, it fallbacks to the regular [TextField] widget.
 ///
-/// Most parameters are taken from the [InputField] widget, but not all of them.
-class FuchsiaCompatibleInputField extends StatelessWidget {
-  /// Creates a new instance of [FuchsiaCompatibleInputField].
-  FuchsiaCompatibleInputField({
+/// Most parameters are taken from the [TextField] widget, but not all of them.
+class FuchsiaCompatibleTextField extends StatelessWidget {
+  /// Creates a new instance of [FuchsiaCompatibleTextField].
+  FuchsiaCompatibleTextField({
     Key key,
+    this.controller,
     this.focusNode,
-    this.value,
-    this.hintText,
+    this.decoration,
     this.style,
-    this.hintStyle,
     this.obscureText: false,
     this.onChanged,
     this.onSubmitted,
   })
       : super(key: key);
 
+  /// Controls the text being edited.
+  ///
+  /// If null, this widget will creates its own [TextEditingController].
+  final TextEditingController controller;
+
   /// Controls whether this widget has keyboard focus.
   final FocusNode focusNode;
 
-  /// The current state of text of the input field. This includes the selected
-  /// text, if any, among other things.
-  final InputValue value;
-
-  /// Text to show inline in the input field when it would otherwise be empty.
-  final String hintText;
+  /// The decoration to show around the text field.
+  ///
+  /// By default, draws a horizontal line under the input field but can be
+  /// configured to show an icon, label, hint text, and error text.
+  ///
+  /// Set this field to null to remove the decoration entirely (including the
+  /// extra padding introduced by the decoration to save space for the labels).
+  final InputDecoration decoration;
 
   /// The style to use for the text being edited.
-  final TextStyle style;
-
-  /// The style to use for the hint text.
   ///
-  /// Defaults to the specified TextStyle in style with the hintColor from
-  /// the ThemeData
-  final TextStyle hintStyle;
+  /// This text style is also used as the base style for the [decoration].
+  ///
+  /// If null, defaults to a text style from the current [Theme].
+  final TextStyle style;
 
   /// Whether to hide the text being edited (e.g., for passwords).
   ///
@@ -63,34 +68,31 @@ class FuchsiaCompatibleInputField extends StatelessWidget {
   final bool obscureText;
 
   /// Called when the text being edited changes.
-  ///
-  /// The [value] must be updated each time [onChanged] is invoked.
-  final ValueChanged<InputValue> onChanged;
+  final ValueChanged<String> onChanged;
 
-  /// Called when the user indicates that they are done editing the text in the field.
-  final ValueChanged<InputValue> onSubmitted;
+  /// Called when the user indicates that they are done editing the text in the
+  /// field.
+  final ValueChanged<String> onSubmitted;
 
   @override
   Widget build(BuildContext context) {
     ThemeData theme = Theme.of(context);
     if (theme.platform == TargetPlatform.fuchsia) {
-      return new RawKeyboardInputField(
+      return new RawKeyboardTextField(
+        controller: controller,
         focusNode: focusNode,
-        value: value,
-        hintText: hintText,
+        decoration: decoration,
         style: style,
-        hintStyle: hintStyle,
         obscureText: obscureText,
         onChanged: onChanged,
         onSubmitted: onSubmitted,
       );
     } else {
-      return new InputField(
+      return new TextField(
+        controller: controller,
         focusNode: focusNode,
-        value: value,
-        hintText: hintText,
+        decoration: decoration,
         style: style,
-        hintStyle: hintStyle,
         obscureText: obscureText,
         onChanged: onChanged,
         onSubmitted: onSubmitted,
@@ -99,42 +101,46 @@ class FuchsiaCompatibleInputField extends StatelessWidget {
   }
 }
 
-/// An [InputField] replacement implemented using the [RawKeyboardListener].
+/// An [TextField] replacement implemented using the [RawKeyboardListener].
 ///
 /// This class does not support IME or software heyboard.
-class RawKeyboardInputField extends StatefulWidget {
-  /// Creates a new instance of [RawKeyboardInputField].
-  RawKeyboardInputField({
+class RawKeyboardTextField extends StatefulWidget {
+  /// Creates a new instance of [RawKeyboardTextField].
+  RawKeyboardTextField({
     Key key,
+    this.controller,
     this.focusNode,
-    this.value,
-    this.hintText,
+    this.decoration,
     this.style,
-    this.hintStyle,
     this.obscureText: false,
     this.onChanged,
     this.onSubmitted,
   })
       : super(key: key);
 
+  /// Controls the text being edited.
+  ///
+  /// If null, this widget will creates its own [TextEditingController].
+  final TextEditingController controller;
+
   /// Controls whether this widget has keyboard focus.
   final FocusNode focusNode;
 
-  /// The current state of text of the input field. This includes the selected
-  /// text, if any, among other things.
-  final InputValue value;
-
-  /// Text to show inline in the input field when it would otherwise be empty.
-  final String hintText;
+  /// The decoration to show around the text field.
+  ///
+  /// By default, draws a horizontal line under the input field but can be
+  /// configured to show an icon, label, hint text, and error text.
+  ///
+  /// Set this field to null to remove the decoration entirely (including the
+  /// extra padding introduced by the decoration to save space for the labels).
+  final InputDecoration decoration;
 
   /// The style to use for the text being edited.
-  final TextStyle style;
-
-  /// The style to use for the hint text.
   ///
-  /// Defaults to the specified TextStyle in style with the hintColor from
-  /// the ThemeData
-  final TextStyle hintStyle;
+  /// This text style is also used as the base style for the [decoration].
+  ///
+  /// If null, defaults to a text style from the current [Theme].
+  final TextStyle style;
 
   /// Whether to hide the text being edited (e.g., for passwords).
   ///
@@ -145,29 +151,44 @@ class RawKeyboardInputField extends StatefulWidget {
   final bool obscureText;
 
   /// Called when the text being edited changes.
-  ///
-  /// The [value] must be updated each time [onChanged] is invoked.
-  final ValueChanged<InputValue> onChanged;
+  final ValueChanged<String> onChanged;
 
-  /// Called when the user indicates that they are done editing the text in the field.
-  final ValueChanged<InputValue> onSubmitted;
+  /// Called when the user indicates that they are done editing the text in the
+  /// field.
+  final ValueChanged<String> onSubmitted;
 
   @override
-  _RawKeyboardInputFieldState createState() =>
-      new _RawKeyboardInputFieldState();
+  _RawKeyboardTextFieldState createState() =>
+      new _RawKeyboardTextFieldState();
 }
 
-class _RawKeyboardInputFieldState extends State<RawKeyboardInputField> {
+class _RawKeyboardTextFieldState extends State<RawKeyboardTextField> {
   FocusNode _focusNode;
   FocusNode get _effectiveFocusNode =>
       config.focusNode ?? (_focusNode ??= new FocusNode());
 
-  String get _currentText => config.value?.text ?? '';
+  TextEditingController _controller;
+  TextEditingController get _effectiveController => config.controller ?? _controller;
 
   String get _displayText => (config.obscureText ?? false)
       ? new String.fromCharCodes(
-          new List<int>.filled(_currentText.length, 0x2022))
-      : _currentText;
+          new List<int>.filled(_effectiveController.text.length, 0x2022))
+      : _effectiveController.text;
+
+  @override
+  void initState() {
+    super.initState();
+    if (config.controller == null)
+      _controller = new TextEditingController();
+  }
+
+  @override
+  void didUpdateConfig(RawKeyboardTextField oldConfig) {
+    if (config.controller == null && oldConfig.controller != null)
+      _controller == new TextEditingController.fromValue(oldConfig.controller.value);
+    else if (config.controller != null && oldConfig.controller == null)
+      _controller = null;
+  }
 
   @override
   void dispose() {
@@ -177,6 +198,7 @@ class _RawKeyboardInputFieldState extends State<RawKeyboardInputField> {
 
   @override
   Widget build(BuildContext context) {
+    final TextEditingController controller = _effectiveController;
     final FocusNode focusNode = _effectiveFocusNode;
     FocusScope.of(context).reparentIfNeeded(focusNode);
 
@@ -187,33 +209,36 @@ class _RawKeyboardInputFieldState extends State<RawKeyboardInputField> {
         focusNode: focusNode,
         onKey: _handleKey,
         child: new AnimatedBuilder(
-          animation: focusNode,
-          builder: (BuildContext context, Widget _) =>
-              _buildText(context, focusNode.hasFocus),
+        animation: new Listenable.merge(<Listenable>[ focusNode, controller ]),
+          builder: (BuildContext context, Widget _) {
+            final Widget editable = _buildEditableText(context);
+            if (config.decoration != null) {
+              return new InputDecorator(
+                decoration: config.decoration,
+                baseStyle: config.style,
+                isFocused: focusNode.hasFocus,
+                isEmpty: controller.value.text.isEmpty,
+                child: editable,
+              );
+            }
+            return editable;
+          },
         ),
       ),
     );
   }
 
-  Widget _buildText(BuildContext context, bool focused) {
+  Widget _buildEditableText(BuildContext context) {
     final ThemeData themeData = Theme.of(context);
-    final TextStyle textStyle = config.style ?? themeData.textTheme.subhead;
-    final TextStyle hintStyle =
-        config.hintStyle ?? textStyle.copyWith(color: themeData.hintColor);
+    final TextStyle style = config.style ?? themeData.textTheme.subhead;
 
-    bool shouldDisplayHintText =
-        _currentText.isEmpty && config.hintText != null;
-
-    Text text = shouldDisplayHintText
-        ? new Text(config.hintText, style: hintStyle, maxLines: 1)
-        : new Text(_displayText, style: textStyle, maxLines: 1);
+    Text text = new Text(_displayText, style: style, maxLines: 1);
 
     double lineHeight = _getLineHeight(text);
 
     List<Widget> children = <Widget>[text];
-    if (focused) {
-      children.insert(
-        shouldDisplayHintText ? 0 : 1,
+    if (_effectiveFocusNode.hasFocus) {
+      children.add(
         new BlinkingCursor(
           color: themeData.textSelectionColor,
           height: lineHeight,
@@ -252,24 +277,26 @@ class _RawKeyboardInputFieldState extends State<RawKeyboardInputField> {
 
     assert(event.data is RawKeyEventDataFuchsia);
     RawKeyEventDataFuchsia data = event.data;
+    final TextEditingController controller = _effectiveController;
 
     if (data.codePoint != 0) {
-      String newText = _currentText + new String.fromCharCode(data.codePoint);
-      _notifyTextChanged(newText);
+      controller.text = controller.text + new String.fromCharCode(data.codePoint);
+      _notifyTextChanged(controller.text);
     } else if (data.hidUsage == _kHidUsageKeyboardReturn) {
       if (config.onSubmitted != null) {
-        config.onSubmitted(config.value);
+        config.onSubmitted(controller.text);
       }
     } else if (data.hidUsage == _kHidUsageKeyboardBackspace) {
-      if (_currentText.isNotEmpty) {
-        _notifyTextChanged(_currentText.substring(0, _currentText.length - 1));
+      if (controller.text.isNotEmpty) {
+        controller.text = controller.text.substring(0, controller.text.length - 1);
+        _notifyTextChanged(controller.text);
       }
     }
   }
 
   void _notifyTextChanged(String newText) {
     if (config.onChanged != null) {
-      config.onChanged(new InputValue(text: newText));
+      config.onChanged(newText);
     }
   }
 }

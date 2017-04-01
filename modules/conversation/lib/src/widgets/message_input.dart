@@ -29,19 +29,11 @@ class MessageInput extends StatefulWidget {
 }
 
 class _MessageInputState extends State<MessageInput> {
-  InputValue _currentInput = InputValue.empty;
-
-  void _handleInputChange(InputValue input) {
-    setState(() {
-      _currentInput = input;
-    });
-  }
+  TextEditingController _controller = new TextEditingController();
 
   void _handleSubmit() {
-    config.onSubmitMessage?.call(_currentInput.text);
-    setState(() {
-      _currentInput = InputValue.empty;
-    });
+    config.onSubmitMessage?.call(_controller.text);
+    _controller.clear();
   }
 
   Widget buildAttachmentButton({
@@ -63,26 +55,31 @@ class _MessageInputState extends State<MessageInput> {
   Widget buildSendButton(Color primaryColor) {
     return new Container(
       padding: const EdgeInsets.all(_kPaddingValue),
-      child: new Material(
-        color: _currentInput.text.isEmpty ? Colors.grey[300] : primaryColor,
-        type: MaterialType.circle,
-        elevation: _currentInput.text.isEmpty ? 2 : 4,
-        child: new Container(
-          width: 40.0,
-          height: 40.0,
-          child: new InkWell(
-            onTap: _currentInput.text.isEmpty ? null : _handleSubmit,
-            child: new Center(
-              child: new Icon(
-                Icons.send,
-                color: _currentInput.text.isEmpty
-                    ? Colors.grey[500]
-                    : Colors.white,
-                size: 16.0,
+      child: new AnimatedBuilder(
+        animation: _controller,
+        builder: (BuildContext context, Widget child) {
+          return new Material(
+            color: _controller.text.isEmpty ? Colors.grey[300] : primaryColor,
+            type: MaterialType.circle,
+            elevation: _controller.text.isEmpty ? 2 : 4,
+            child: new Container(
+              width: 40.0,
+              height: 40.0,
+              child: new InkWell(
+                onTap: _controller.text.isEmpty ? null : _handleSubmit,
+                child: new Center(
+                  child: new Icon(
+                    Icons.send,
+                    color: _controller.text.isEmpty
+                        ? Colors.grey[500]
+                        : Colors.white,
+                    size: 16.0,
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -108,11 +105,12 @@ class _MessageInputState extends State<MessageInput> {
             ),
             new Expanded(
               flex: 1,
-              child: new FuchsiaCompatibleInputField(
-                onChanged: _handleInputChange,
-                value: _currentInput,
-                hintText: 'Type a message',
+              child: new FuchsiaCompatibleTextField(
+                controller: _controller,
                 onSubmitted: (_) => _handleSubmit(),
+                decoration: const InputDecoration.collapsed(
+                  hintText: 'Type a message',
+                ),
               ),
             ),
             buildSendButton(theme.primaryColor),
