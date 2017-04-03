@@ -92,6 +92,7 @@ class ModuleImpl extends Module {
 
     _log('Starting sub-module: $url');
     moduleContext.startModule(
+      url,  // module name
       url,
       duplicateLink(),
       outgoingServices,
