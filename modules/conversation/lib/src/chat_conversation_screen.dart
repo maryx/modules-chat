@@ -71,6 +71,6 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return new ChatThread(chatSections: chatSections);
+    return new ChatConversation(chatSections: chatSections);
   }
 }

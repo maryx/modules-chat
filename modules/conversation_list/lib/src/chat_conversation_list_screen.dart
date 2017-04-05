@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 import 'package:models/user.dart';
 
+import 'models.dart';
 import 'widgets.dart';
 
 void _log(String msg) {
@@ -34,7 +35,7 @@ class ChatConversationListScreen extends StatefulWidget {
 
 class _ChatConversationListScreenState
     extends State<ChatConversationListScreen> {
-  List<ChatThreadListItem> chatThreads = <ChatThreadListItem>[];
+  List<Conversation> conversations = <Conversation>[];
 
   @override
   void initState() {
@@ -43,30 +44,38 @@ class _ChatConversationListScreenState
     // Initiate the fetch.
     _log('Calling getConversations.');
     config.chatContentProvider
-        .getConversations((List<ccp.Conversation> conversations) {
+        .getConversations((List<ccp.Conversation> fidlConversations) {
       _log('getConversations callback.');
       setState(() {
-        chatThreads = conversations
-            .map((ccp.Conversation c) => new ChatThreadListItem(
-                  users: c.participants
-                      .map((ccp.User u) => new User(
-                            email: u.emailAddress,
-                            name: u.displayName,
-                            picture: u.profilePictureUrl,
-                          ))
-                      .toList(),
-                  onSelect: () => print('onSelect called'),
-                  snippet: null,
-                  timestamp: null,
-                ))
-            .toList();
+        conversations =
+            fidlConversations.map(_getConversationFromFidl).toList();
       });
     });
     _log('Called getConversations.');
   }
 
+  Conversation _getConversationFromFidl(ccp.Conversation c) {
+    // TODO(youngseokyoon): get the last message and fill in the info.
+    return new Conversation(
+      conversationId: c.conversationId,
+      participants: c.participants.map(_getUserFromFidl).toList(),
+      snippet: null,
+      timestamp: null,
+    );
+  }
+
+  User _getUserFromFidl(ccp.User u) {
+    return new User(
+      email: u.emailAddress,
+      name: u.displayName,
+      picture: u.profilePictureUrl,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return new ChatThreadList(chatThreads: chatThreads);
+    return new ChatConversationList(
+      conversations: conversations,
+    );
   }
 }

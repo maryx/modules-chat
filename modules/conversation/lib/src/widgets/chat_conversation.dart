@@ -9,7 +9,7 @@ import 'chat_section.dart';
 import 'message_input.dart';
 
 /// UI Widget that represents a single chat thread
-class ChatThread extends StatelessWidget {
+class ChatConversation extends StatelessWidget {
   /// List of [ChatSection]s to render
   ///
   /// TODO(dayang): Pass in the data model representing a chat thread
@@ -20,7 +20,7 @@ class ChatThread extends StatelessWidget {
   final String title;
 
   /// Constructor
-  ChatThread({
+  ChatConversation({
     Key key,
     @required this.chatSections,
     this.title,

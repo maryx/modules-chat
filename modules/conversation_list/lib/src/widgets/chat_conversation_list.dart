@@ -5,27 +5,32 @@
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 
-import 'chat_thread_list_item.dart';
+import '../models/conversation.dart';
+import 'chat_conversation_list_item.dart';
 
-/// UI Widget that represents a list of chat threads
-class ChatThreadList extends StatelessWidget {
-  /// List of [ChatThreadListItem]s to render
-  ///
-  /// TODO(dayang): Pass in the data model representing a chat thread
-  /// once that is specified
-  final List<ChatThreadListItem> chatThreads;
+/// Callback function signature for an action on a conversation
+typedef void ConversationMetaActionCallback(Conversation message);
 
-  /// Callback for when the new chat FAB is pressed
-  final VoidCallback onNewChat;
+/// UI Widget that represents a list of chat conversations
+class ChatConversationList extends StatelessWidget {
+  /// List of [Conversation]s to render.
+  final List<Conversation> conversations;
+
+  /// Callback for when the new chat FAB is pressed.
+  final VoidCallback onNewConversation;
+
+  /// Callback for when a conversation in the list is tapped.
+  final ConversationMetaActionCallback onSelectConversation;
 
   /// Constructor
-  ChatThreadList({
+  ChatConversationList({
     Key key,
-    @required this.chatThreads,
-    this.onNewChat,
+    @required this.conversations,
+    this.onNewConversation,
+    this.onSelectConversation,
   })
       : super(key: key) {
-    assert(this.chatThreads != null);
+    assert(this.conversations != null);
   }
 
   @override
@@ -53,7 +58,12 @@ class ChatThreadList extends StatelessWidget {
             ),
             new ListView(
               shrinkWrap: true,
-              children: chatThreads,
+              children: conversations
+                  .map((Conversation c) => new ChatConversationListItem(
+                        conversation: c,
+                        onSelect: () => onSelectConversation?.call(c),
+                      ))
+                  .toList(),
             ),
           ],
         ),
@@ -62,7 +72,7 @@ class ChatThreadList extends StatelessWidget {
           right: 16.0,
           child: new FloatingActionButton(
             child: new Icon(Icons.add),
-            onPressed: () => onNewChat?.call(),
+            onPressed: () => onNewConversation?.call(),
           ),
         ),
       ],

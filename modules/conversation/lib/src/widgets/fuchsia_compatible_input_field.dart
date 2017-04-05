@@ -158,8 +158,7 @@ class RawKeyboardTextField extends StatefulWidget {
   final ValueChanged<String> onSubmitted;
 
   @override
-  _RawKeyboardTextFieldState createState() =>
-      new _RawKeyboardTextFieldState();
+  _RawKeyboardTextFieldState createState() => new _RawKeyboardTextFieldState();
 }
 
 class _RawKeyboardTextFieldState extends State<RawKeyboardTextField> {
@@ -168,7 +167,8 @@ class _RawKeyboardTextFieldState extends State<RawKeyboardTextField> {
       config.focusNode ?? (_focusNode ??= new FocusNode());
 
   TextEditingController _controller;
-  TextEditingController get _effectiveController => config.controller ?? _controller;
+  TextEditingController get _effectiveController =>
+      config.controller ?? _controller;
 
   String get _displayText => (config.obscureText ?? false)
       ? new String.fromCharCodes(
@@ -178,14 +178,14 @@ class _RawKeyboardTextFieldState extends State<RawKeyboardTextField> {
   @override
   void initState() {
     super.initState();
-    if (config.controller == null)
-      _controller = new TextEditingController();
+    if (config.controller == null) _controller = new TextEditingController();
   }
 
   @override
   void didUpdateConfig(RawKeyboardTextField oldConfig) {
     if (config.controller == null && oldConfig.controller != null)
-      _controller == new TextEditingController.fromValue(oldConfig.controller.value);
+      _controller ==
+          new TextEditingController.fromValue(oldConfig.controller.value);
     else if (config.controller != null && oldConfig.controller == null)
       _controller = null;
   }
@@ -209,7 +209,7 @@ class _RawKeyboardTextFieldState extends State<RawKeyboardTextField> {
         focusNode: focusNode,
         onKey: _handleKey,
         child: new AnimatedBuilder(
-        animation: new Listenable.merge(<Listenable>[ focusNode, controller ]),
+          animation: new Listenable.merge(<Listenable>[focusNode, controller]),
           builder: (BuildContext context, Widget _) {
             final Widget editable = _buildEditableText(context);
             if (config.decoration != null) {
@@ -280,7 +280,8 @@ class _RawKeyboardTextFieldState extends State<RawKeyboardTextField> {
     final TextEditingController controller = _effectiveController;
 
     if (data.codePoint != 0) {
-      controller.text = controller.text + new String.fromCharCode(data.codePoint);
+      controller.text =
+          controller.text + new String.fromCharCode(data.codePoint);
       _notifyTextChanged(controller.text);
     } else if (data.hidUsage == _kHidUsageKeyboardReturn) {
       if (config.onSubmitted != null) {
@@ -288,7 +289,8 @@ class _RawKeyboardTextFieldState extends State<RawKeyboardTextField> {
       }
     } else if (data.hidUsage == _kHidUsageKeyboardBackspace) {
       if (controller.text.isNotEmpty) {
-        controller.text = controller.text.substring(0, controller.text.length - 1);
+        controller.text =
+            controller.text.substring(0, controller.text.length - 1);
         _notifyTextChanged(controller.text);
       }
     }

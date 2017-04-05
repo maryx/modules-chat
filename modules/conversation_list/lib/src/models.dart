@@ -2,6 +2,4 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-export 'widgets/chat_conversation_list.dart';
-export 'widgets/chat_conversation_list_item.dart';
-export 'widgets/chat_group_avatar.dart';
+export 'models/conversation.dart';
