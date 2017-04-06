@@ -9,7 +9,7 @@ import '../models/conversation.dart';
 import 'chat_conversation_list_item.dart';
 
 /// Callback function signature for an action on a conversation
-typedef void ConversationMetaActionCallback(Conversation message);
+typedef void ConversationActionCallback(Conversation message);
 
 /// UI Widget that represents a list of chat conversations
 class ChatConversationList extends StatelessWidget {
@@ -20,7 +20,7 @@ class ChatConversationList extends StatelessWidget {
   final VoidCallback onNewConversation;
 
   /// Callback for when a conversation in the list is tapped.
-  final ConversationMetaActionCallback onSelectConversation;
+  final ConversationActionCallback onSelectConversation;
 
   /// Constructor
   ChatConversationList({

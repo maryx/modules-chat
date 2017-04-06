@@ -23,6 +23,7 @@ flutter_app("chat_story") {
     "//apps/mozart/services/views:views_dart",
     "//lib/fidl/dart",
     "//lib/flutter/packages/flutter",
+    "//lib/widgets/packages/widgets:lib.widgets",
   ]
 
   analysis_options = "//apps/modules/common/.analysis_options"
