@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:convert' show JSON;
 import 'dart:typed_data';
 
 import 'package:application.lib.app.dart/app.dart';
@@ -45,6 +46,10 @@ class ChatConversationListModuleModel extends ModuleModel {
 
   set conversationId(List<int> id) {
     _conversationId = new Uint8List.fromList(id);
+
+    // Set the value to Link.
+    link.set(null, JSON.encode(id));
+
     notifyListeners();
   }
 

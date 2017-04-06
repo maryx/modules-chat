@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:convert' show JSON;
 import 'dart:typed_data';
 
 import 'package:application.lib.app.dart/app.dart';
@@ -29,13 +30,32 @@ class ChatConversationModuleModel extends ModuleModel {
   final ChatContentProviderProxy _chatContentProvider =
       new ChatContentProviderProxy();
 
+  final LinkWatcherBinding _linkWatcherBinding = new LinkWatcherBinding();
+  LinkWatcherImpl _linkWatcher;
+
   List<Message> _messages;
+
+  Uint8List _conversationId;
 
   /// Gets the [ChatContentProvider] service provided by the agent.
   ChatContentProvider get chatContentProvider => _chatContentProvider;
 
-  /// Gets the current conversation id value.
-  Uint8List get conversationId => null;
+  /// Gets and sets the current conversation id value.
+  Uint8List get conversationId => _conversationId;
+
+  set conversationId(List<int> id) {
+    Uint8List newId = new Uint8List.fromList(id);
+    if (_conversationId != newId) {
+      _messages = null;
+      _conversationId = newId;
+
+      // We notify here first to indicate the conversation id value is changed.
+      notifyListeners();
+
+      // After fetching is done, a second notification will be sent out.
+      _fetchMessageHistory();
+    }
+  }
 
   /// Gets the list of chat messages in the current conversation.
   ///
@@ -67,6 +87,14 @@ class ChatConversationModuleModel extends ModuleModel {
     );
     connectToService(contentProviderServices, _chatContentProvider.ctrl);
 
+    // Register a LinkWatcher.
+    _linkWatcher = new LinkWatcherImpl(
+      onNotify: (String json) {
+        conversationId = JSON.decode(json);
+      },
+    );
+    link.watch(_linkWatcherBinding.wrap(_linkWatcher));
+
     // Close all the unnecessary bindings.
     contentProviderServices.ctrl.close();
     componentContext.ctrl.close();
@@ -90,6 +118,8 @@ class ChatConversationModuleModel extends ModuleModel {
 
   @override
   void onStop() {
+    _linkWatcherBinding.close();
+
     _chatContentProvider.ctrl.close();
     _chatContentProviderController.ctrl.close();
 
