@@ -13,6 +13,7 @@ import 'package:apps.modular.services.module/module_context.fidl.dart';
 import 'package:apps.modular.services.story/link.fidl.dart';
 import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart'
     as chat_fidl;
+import 'package:collection/collection.dart';
 import 'package:lib.widgets/modular.dart';
 import 'package:models/user.dart';
 
@@ -28,6 +29,8 @@ void _log(String msg) {
 /// A [ModuleModel] providing chat conversation list specific data to the
 /// descendant widgets.
 class ChatConversationListModuleModel extends ModuleModel {
+  static final ListEquality<int> _intListEquality = const ListEquality<int>();
+
   final AgentControllerProxy _chatContentProviderController =
       new AgentControllerProxy();
 
@@ -45,12 +48,15 @@ class ChatConversationListModuleModel extends ModuleModel {
   Uint8List get conversationId => _conversationId;
 
   set conversationId(List<int> id) {
-    _conversationId = new Uint8List.fromList(id);
+    Uint8List newId = id == null ? null : new Uint8List.fromList(id);
+    if (!_intListEquality.equals(_conversationId, newId)) {
+      _conversationId = newId;
 
-    // Set the value to Link.
-    link.set(null, JSON.encode(id));
+      // Set the value to Link.
+      link.set(null, JSON.encode(id));
 
-    notifyListeners();
+      notifyListeners();
+    }
   }
 
   /// Gets the list of chat conversations.

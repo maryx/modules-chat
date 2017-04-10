@@ -12,6 +12,7 @@ import 'package:apps.modular.services.component/component_context.fidl.dart';
 import 'package:apps.modular.services.module/module_context.fidl.dart';
 import 'package:apps.modular.services.story/link.fidl.dart';
 import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart';
+import 'package:collection/collection.dart';
 import 'package:lib.widgets/modular.dart';
 
 const String _kChatContentProviderUrl =
@@ -24,6 +25,8 @@ void _log(String msg) {
 /// A [ModuleModel] providing chat conversation specific data to the descendant
 /// widgets.
 class ChatConversationModuleModel extends ModuleModel {
+  static final ListEquality<int> _intListEquality = const ListEquality<int>();
+
   final AgentControllerProxy _chatContentProviderController =
       new AgentControllerProxy();
 
@@ -40,12 +43,13 @@ class ChatConversationModuleModel extends ModuleModel {
   /// Gets the [ChatContentProvider] service provided by the agent.
   ChatContentProvider get chatContentProvider => _chatContentProvider;
 
-  /// Gets and sets the current conversation id value.
+  /// Gets the current conversation id value.
   Uint8List get conversationId => _conversationId;
 
-  set conversationId(List<int> id) {
-    Uint8List newId = new Uint8List.fromList(id);
-    if (_conversationId != newId) {
+  /// Sets the current conversation id value.
+  void _setConversationId(List<int> id) {
+    Uint8List newId = id == null ? null : new Uint8List.fromList(id);
+    if (!_intListEquality.equals(_conversationId, newId)) {
       _messages = null;
       _conversationId = newId;
 
@@ -90,7 +94,7 @@ class ChatConversationModuleModel extends ModuleModel {
     // Register a LinkWatcher.
     _linkWatcher = new LinkWatcherImpl(
       onNotify: (String json) {
-        conversationId = JSON.decode(json);
+        _setConversationId(JSON.decode(json));
       },
     );
     link.watch(_linkWatcherBinding.wrap(_linkWatcher));
