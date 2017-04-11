@@ -3,8 +3,7 @@
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
-
-import 'fuchsia_compatible_input_field.dart';
+import 'package:lib.widgets/hacks.dart';
 
 const double _kPaddingValue = 16.0;
 
@@ -29,10 +28,10 @@ class MessageInput extends StatefulWidget {
 }
 
 class _MessageInputState extends State<MessageInput> {
-  TextEditingController _controller = new TextEditingController();
+  final TextEditingController _controller = new TextEditingController();
 
   void _handleSubmit() {
-    config.onSubmitMessage?.call(_controller.text);
+    widget.onSubmitMessage?.call(_controller.text);
     _controller.clear();
   }
 
@@ -101,7 +100,7 @@ class _MessageInputState extends State<MessageInput> {
           children: <Widget>[
             buildAttachmentButton(
               icon: Icons.photo,
-              onPressed: () => config.onTapSharePhoto?.call(),
+              onPressed: () => widget.onTapSharePhoto?.call(),
             ),
             new Expanded(
               flex: 1,

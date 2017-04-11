@@ -5,5 +5,4 @@
 export 'widgets/chat_bubble.dart';
 export 'widgets/chat_conversation.dart';
 export 'widgets/chat_section.dart';
-export 'widgets/fuchsia_compatible_input_field.dart';
 export 'widgets/message_input.dart';
