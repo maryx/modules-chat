@@ -10,22 +10,29 @@ import 'package:util/time_util.dart';
 import '../models/conversation.dart';
 import 'chat_group_avatar.dart';
 
+final Color _kSelectedBgColor = Colors.blue[200].withOpacity(0.2);
+
 /// UI Widget that represents a single chat conversation when viewing many chat
 /// conversations in a list.
 class ChatConversationListItem extends StatelessWidget {
   /// Conversation data model.
   final Conversation conversation;
 
-  /// Callback fired when this item is selected
+  /// Callback fired when this item is selected.
   final VoidCallback onSelect;
+
+  /// Indicates whether this conversation is currently selected or not.
+  final bool selected;
 
   /// Constructor
   ChatConversationListItem({
     Key key,
     @required this.conversation,
     this.onSelect,
+    bool selected,
   })
-      : super(key: key) {
+      : selected = selected ?? false,
+        super(key: key) {
     assert(conversation != null);
     assert(conversation.participants != null);
   }
@@ -37,28 +44,31 @@ class ChatConversationListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return new ListTile(
-      leading: new ChatGroupAvatar(
-        users: conversation.participants,
-      ),
-      title: new Text(
-        _participantNames,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: new Text(
-        conversation.snippet ?? '',
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: new Text(
-        conversation.timestamp != null
-            ? TimeUtil.relativeDisplayDate(date: conversation.timestamp)
-            : '',
-        style: new TextStyle(
-          color: Colors.grey[500],
-          fontSize: 12.0,
+    return new Material(
+      color: selected ? _kSelectedBgColor : Colors.white,
+      child: new ListTile(
+        leading: new ChatGroupAvatar(
+          users: conversation.participants,
         ),
+        title: new Text(
+          _participantNames,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: new Text(
+          conversation.snippet ?? '',
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: new Text(
+          conversation.timestamp != null
+              ? TimeUtil.relativeDisplayDate(date: conversation.timestamp)
+              : '',
+          style: new TextStyle(
+            color: Colors.grey[500],
+            fontSize: 12.0,
+          ),
+        ),
+        onTap: () => onSelect?.call(),
       ),
-      onTap: () => onSelect?.call(),
     );
   }
 }

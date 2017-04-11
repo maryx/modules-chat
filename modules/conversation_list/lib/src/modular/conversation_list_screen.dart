@@ -31,6 +31,7 @@ class ChatConversationListScreen extends StatelessWidget {
                   : conversationListModel.conversations,
               onSelectConversation: (Conversation c) =>
                   conversationListModel.conversationId = c.conversationId,
+              selectedId: conversationListModel.conversationId,
             );
           },
         ),

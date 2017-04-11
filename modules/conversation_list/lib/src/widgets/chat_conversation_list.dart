@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 
@@ -13,6 +14,8 @@ typedef void ConversationActionCallback(Conversation message);
 
 /// UI Widget that represents a list of chat conversations
 class ChatConversationList extends StatelessWidget {
+  static final ListEquality<int> _intListEquality = const ListEquality<int>();
+
   /// List of [Conversation]s to render.
   final List<Conversation> conversations;
 
@@ -22,12 +25,16 @@ class ChatConversationList extends StatelessWidget {
   /// Callback for when a conversation in the list is tapped.
   final ConversationActionCallback onSelectConversation;
 
+  /// Indicates the conversation id of the selected conversation. Can be null.
+  final List<int> selectedId;
+
   /// Constructor
   ChatConversationList({
     Key key,
     @required this.conversations,
     this.onNewConversation,
     this.onSelectConversation,
+    this.selectedId,
   })
       : super(key: key) {
     assert(this.conversations != null);
@@ -59,10 +66,15 @@ class ChatConversationList extends StatelessWidget {
             new ListView(
               shrinkWrap: true,
               children: conversations
-                  .map((Conversation c) => new ChatConversationListItem(
+                  .map(
+                    (Conversation c) => new ChatConversationListItem(
                         conversation: c,
                         onSelect: () => onSelectConversation?.call(c),
-                      ))
+                        selected: _intListEquality.equals(
+                          selectedId,
+                          c.conversationId,
+                        )),
+                  )
                   .toList(),
             ),
           ],
