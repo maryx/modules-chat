@@ -124,7 +124,8 @@ class ChatConversationListModuleModel extends ModuleModel {
 
   User _getUserFromFidl(chat_fidl.User u) => new User(
         email: u.emailAddress,
-        name: u.displayName,
+        // TODO(youngseokyoon): handle empty name properly.
+        name: u.displayName ?? u.emailAddress,
         picture: u.profilePictureUrl,
       );
 

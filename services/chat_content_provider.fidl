@@ -13,7 +13,7 @@ struct User {
   string email_address;
 
   // Display name for the user.
-  string display_name;
+  string? display_name;
 
   // Profile picture url for the user (can be null).
   string? profile_picture_url;
@@ -69,10 +69,6 @@ interface ChatContentProvider {
   // Gets the list of all messages in the specified conversation.
   // TODO(youngseokyoon): provide a way to retrieve recent messages only.
   GetMessageHistory(array<uint8> conversation_id) => (array<Message> messages);
-
-  // Gets the message associated with the given message id.
-  // The returned message can be null if the specified message does not exist.
-  GetMessage(array<uint8> message_id) => (Message? message);
 
   // Gets the last message of the specified conversation.
   // The returned message can be null if the specified conversation does not

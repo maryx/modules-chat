@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:application.lib.app.dart/app.dart';
 import 'package:application.services/service_provider.fidl.dart';
+import 'package:apps.ledger.services.public/ledger.fidl.dart';
 import 'package:apps.maxwell.services.suggestion/proposal_publisher.fidl.dart';
 import 'package:apps.modular.services.agent/agent.fidl.dart';
 import 'package:apps.modular.services.agent/agent_context.fidl.dart';
@@ -33,6 +34,8 @@ class ChatContentProviderAgent extends Agent {
   final ChatContentProviderImpl _contentProviderImpl =
       new ChatContentProviderImpl();
 
+  final LedgerProxy _ledger = new LedgerProxy();
+
   /// Bind an [InterfaceRequest] for an [Agent] interface to this object.
   void bind(InterfaceRequest<Agent> request) {
     _agentBinding.bind(this, request);
@@ -49,8 +52,20 @@ class ChatContentProviderAgent extends Agent {
       ..ctrl.bind(agentContextHandle);
     agentContext.getComponentContext(_componentContext.ctrl.request());
 
+    // Obtain the Ledger instance for this agent.
+    _componentContext.getLedger(_ledger.ctrl.request(), (Status status) {
+      if (status != Status.ok) {
+        throw new Exception(
+          'ComponentContext::GetLedger returned an error status: $status',
+        );
+      }
+    });
+
     // Initialize the content provider.
-    await _contentProviderImpl.initialize();
+    await _contentProviderImpl.initialize(_ledger);
+
+    // TODO(youngseokyoon): Take this code out when the testing is done.
+    await _contentProviderImpl.addTestData();
 
     // Register the ChatContentProvider service to the outgoingServices
     // service provider.

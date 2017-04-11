@@ -110,8 +110,12 @@ class ChatConversationModuleModel extends ModuleModel {
   void _fetchMessageHistory() {
     _log('fetchMessageHistory call.');
 
+    if (conversationId == null) {
+      return;
+    }
+
     chatContentProvider.getMessageHistory(
-      conversationId ?? new Uint8List(16),
+      conversationId,
       (List<Message> messages) {
         _log('getMessageHistory callback.');
         _messages = new List<Message>.from(messages);

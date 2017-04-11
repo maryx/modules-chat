@@ -4,8 +4,9 @@
 
 import 'dart:async';
 import 'dart:convert' show JSON;
-import 'dart:math';
+import 'dart:typed_data';
 
+import 'package:apps.ledger.services.public/ledger.fidl.dart';
 import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart';
 import 'package:config/config.dart';
 import 'package:fixtures/fixtures.dart';
@@ -13,9 +14,30 @@ import 'package:http/http.dart' as http;
 import 'package:lib.fidl.dart/bindings.dart' show InterfaceRequest;
 import 'package:uuid/uuid.dart';
 
+import 'ledger_utils.dart';
+
 void _log(String msg) {
   print('[chat_content_provider_impl] $msg');
 }
+
+const int _kKeyLengthInBytes = 16;
+
+/// Defines a reserved [Page] for the Ledger instance.
+class _ReservedPage {
+  final String name;
+  final Uint8List id;
+  const _ReservedPage({this.name, this.id});
+}
+
+/// List of reserved pages to be used for Chat modules.
+final List<_ReservedPage> _kReservedPages = <_ReservedPage>[
+  new _ReservedPage(
+    name: 'conversations',
+    id: new Uint8List.fromList(
+      const <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    ),
+  ),
+];
 
 /// Implementation of the [ChatContentProvider] fidl interface.
 class ChatContentProviderImpl extends ChatContentProvider {
@@ -35,11 +57,126 @@ class ChatContentProviderImpl extends ChatContentProvider {
   /// Firebase auth token obtained from the identity toolkit api.
   String _firebaseAuthToken;
 
+  /// Ledger instance given to the content provider.
+  Ledger _ledger;
+
+  /// Reserved [Page]s in the ledger.
+  final Map<String, PageProxy> _reservedPages = <String, PageProxy>{};
+  Page get _conversationsPage => _reservedPages['conversations'];
+
   /// Indicates whether the chat content provider is properly initialized.
-  final Completer<bool> _ready = new Completer<bool>();
+  final Completer<Null> _ledgerReady = new Completer<Null>();
 
   /// Runs the startup logic for the chat content provider.
-  Future<Null> initialize() async {
+  Future<Null> initialize(Ledger ledger) async {
+    _ledger = ledger;
+
+    try {
+      /// These two operations don't depend on each other, so just run them in
+      /// parallel.
+      await Future.wait(<Future<Null>>[
+        _initializeLedger(),
+        _signInToFirebase(),
+      ]);
+    } catch (e, stackTrace) {
+      _log('Failed to initialize: $e');
+      _log(stackTrace.toString());
+      return;
+    }
+  }
+
+  /// Initializes the Ledger instance with all the reserved pages created.
+  Future<Null> _initializeLedger() async {
+    _reservedPages.values.forEach((PageProxy page) => page?.ctrl?.close());
+    _reservedPages.clear();
+
+    await Future.forEach(_kReservedPages, (_ReservedPage pageInfo) {
+      PageProxy page = new PageProxy();
+      _ledger.getPage(pageInfo.id, page.ctrl.request(), (Status status) {
+        if (status != Status.ok) {
+          throw new Exception(
+            'Ledger::GetPage() returned an error status: $status',
+          );
+        }
+      });
+      _reservedPages[pageInfo.name] = page;
+    });
+
+    _ledgerReady.complete();
+    _log('Ledger Initialized');
+  }
+
+  /// Temporary method for adding some sample data.
+  // TODO(youngseokyoon): take this out.
+  Future<Null> addTestData() async {
+    for (int i = 0; i < 3; ++i) {
+      await _addConversation();
+    }
+  }
+
+  Future<Null> _addConversation() async {
+    // Request a new page from Ledger.
+    PageProxy newConversationPage = new PageProxy();
+    _ledger.getPage(null, newConversationPage.ctrl.request(), (Status status) {
+      if (status != Status.ok) {
+        throw new Exception(
+          'Ledger::GetPage() returned an error status: $status',
+        );
+      }
+    });
+
+    // Get the ID of that page, which will be used as the conversation id.
+    Completer<Uint8List> idCompleter = new Completer<Uint8List>();
+    newConversationPage.getId(
+      (List<int> id) => idCompleter.complete(new Uint8List.fromList(id)),
+    );
+    Uint8List conversationId = await idCompleter.future;
+
+    // Put the conversation entry to the conversations page.
+    Completer<Status> statusCompleter = new Completer<Status>();
+    _conversationsPage.put(
+      conversationId,
+      encodeLedgerValue(<String, dynamic>{
+        'participants': <String>[_randomEmail(), _randomEmail()],
+      }),
+      (Status s) => statusCompleter.complete(s),
+    );
+    Status status = await statusCompleter.future;
+    if (status != Status.ok) {
+      throw new Exception('Page::Put() returned an error status: $status');
+    }
+
+    // Put some example data in the conversation log page.
+    for (int i = 0; i < 3; ++i) {
+      Message message = _randomMessage();
+      Map<String, dynamic> messageObject = <String, dynamic>{
+        'sender': message.sender,
+        'type': message.type,
+        'json_payload': message.jsonPayload,
+      };
+
+      Uint8List messageId = new Uint8List(_kKeyLengthInBytes);
+      messageId[_kKeyLengthInBytes - 1] = i + 1;
+      statusCompleter = new Completer<Status>();
+      newConversationPage.put(
+        messageId,
+        encodeLedgerValue(messageObject),
+        (Status s) => statusCompleter.complete(s),
+      );
+      status = await statusCompleter.future;
+      if (status != Status.ok) {
+        throw new Exception(
+          'Page::Put() returned an error status: $status',
+        );
+      }
+    }
+
+    // Close the page.
+    newConversationPage.ctrl.close();
+  }
+
+  /// Sign in to the firebase DB using the given google auth credentials.
+  Future<Null> _signInToFirebase() async {
     // First, see if the required config values are all provided.
     Config config = await Config.read('/system/data/modules/config.json');
     List<String> keys = <String>[
@@ -49,23 +186,9 @@ class ChatContentProviderImpl extends ChatContentProvider {
       'oauth_token',
     ];
 
-    try {
-      config.validate(keys);
-      _config = config;
+    config.validate(keys);
+    _config = config;
 
-      await _signInToFirebase();
-      await _updateUserInfo();
-    } catch (e, stackTrace) {
-      _log('Failed to initialize: $e');
-      _log(stackTrace.toString());
-      return;
-    }
-
-    _ready.complete(true);
-  }
-
-  /// Sign in to the firebase DB using the given google auth credentials.
-  Future<Null> _signInToFirebase() async {
     // Make a call to identitytoolkit API to register the current user to the
     // Firebase project, and obtain the Firebase UID for this user.
     Uri identityToolkitUrl = new Uri.https(
@@ -122,41 +245,8 @@ class ChatContentProviderImpl extends ChatContentProvider {
     }
   }
 
-  /// Updates the current user's email address to the firebase DB's user
-  /// directory, so that other users can search this user by email.
-  ///
-  /// The email data is stored in:
-  ///
-  ///     /users/<firebase-uid>/email: <normalized-email-address>
-  ///
-  Future<Null> _updateUserInfo() async {
-    http.Response response = await _firebaseDBPut(
-      '/users/$_firebaseUid/email',
-      _email,
-    );
-
-    if (response.statusCode != 200) {
-      throw new Exception(
-        '_updateUserInfo operation failed (code: ${response.statusCode})',
-      );
-    }
-
-    // Make sure that the value is actually written.
-    http.Response getResponse = await _firebaseDBGet(
-      '/users/$_firebaseUid/email',
-    );
-
-    if (getResponse.statusCode != 200 ||
-        JSON.decode(getResponse.body) != _email) {
-      throw new Exception(
-        '_updateUserInfo: failed to confirm the updated user info.',
-      );
-    }
-
-    _log('Successfully updated user info for $_email');
-  }
-
   /// Make a GET request to the firebase DB.
+  // ignore: unused_element
   Future<http.Response> _firebaseDBGet(String path) {
     Uri url = _getFirebaseUrl(path);
     return http.get(
@@ -165,6 +255,7 @@ class ChatContentProviderImpl extends ChatContentProvider {
   }
 
   /// Make a PUT request to the firebase DB.
+  // ignore: unused_element
   Future<http.Response> _firebaseDBPut(String path, dynamic data) {
     Uri url = _getFirebaseUrl(path);
     return http.put(
@@ -213,6 +304,8 @@ class ChatContentProviderImpl extends ChatContentProvider {
 
   /// Close all the bindings.
   void close() {
+    _reservedPages.values.forEach((PageProxy page) => page?.ctrl?.close());
+
     _bindings.forEach(
       (ChatContentProviderBinding binding) => binding.close(),
     );
@@ -232,50 +325,112 @@ class ChatContentProviderImpl extends ChatContentProvider {
     callback(null);
   }
 
-  /// NOTE: Temporary implementation.
-  // TODO(youngseokyoon): properly implement with the ledger.
   @override
-  void getConversations(void callback(List<Conversation> conversations)) {
-    Random random = new Random();
+  Future<Null> getConversations(
+    void callback(List<Conversation> conversations),
+  ) async {
+    await _ledgerReady.future;
+
+    // Get the current snapshot of the 'conversations' page.
+    PageSnapshotProxy snapshot = new PageSnapshotProxy();
+
+    _conversationsPage.getSnapshot(
+      snapshot.ctrl.request(),
+      null,
+      (Status status) {
+        if (status != Status.ok) {
+          throw new Exception(
+            'Page::GetSnapshot() returned an error status: $status',
+          );
+        }
+      },
+    );
+
+    List<Entry> entries = await getFullEntries(snapshot);
     List<Conversation> conversations = <Conversation>[];
-    for (int i = 0; i < 3 + random.nextInt(3); ++i) {
-      conversations.add(_randomConversation());
-    }
+    entries.forEach((Entry entry) {
+      dynamic decodedValue = decodeLedgerValue(entry.value);
+
+      Conversation conversation = new Conversation()
+        ..conversationId = entry.key
+        ..participants = decodedValue['participants']
+            .map((String email) => new User()..emailAddress = email)
+            .toList();
+
+      conversations.add(conversation);
+    });
+
+    snapshot.ctrl.close();
 
     callback(conversations);
   }
 
-  /// NOTE: Temporary implementation.
-  // TODO(youngseokyoon): properly implement with the ledger.
   @override
-  void getMessageHistory(
+  Future<Null> getMessageHistory(
     List<int> conversationId,
     void callback(List<Message> messages),
-  ) {
-    Random random = new Random();
+  ) async {
+    await _ledgerReady.future;
+
+    _log('getMessageHistory() called with conversationId: $conversationId');
+
+    // Get the current snapshot of the specified conversation page.
+    PageProxy conversationPage = new PageProxy();
+    _ledger.getPage(
+      conversationId,
+      conversationPage.ctrl.request(),
+      (Status status) {
+        if (status != Status.ok) {
+          throw new Exception(
+            'Ledger::GetPage() returned an error status: $status',
+          );
+        }
+      },
+    );
+
+    PageSnapshotProxy snapshot = new PageSnapshotProxy();
+    conversationPage.getSnapshot(
+      snapshot.ctrl.request(),
+      null,
+      (Status status) {
+        if (status != Status.ok) {
+          throw new Exception(
+            'Page::GetSnapshot() returned an error status: $status',
+          );
+        }
+      },
+    );
+
+    List<Entry> entries = await getFullEntries(snapshot);
     List<Message> messages = <Message>[];
-    for (int i = 0; i < 3 + random.nextInt(3); ++i) {
-      messages.add(_randomMessage());
-    }
+    entries.forEach((Entry entry) {
+      dynamic decodedValue = decodeLedgerValue(entry.value);
+
+      Message message = new Message()
+        ..messageId = entry.key
+        ..sender = decodedValue['sender']
+        ..type = decodedValue['type']
+        ..jsonPayload = decodedValue['json_payload'];
+
+      messages.add(message);
+    });
+
+    snapshot.ctrl.close();
+    conversationPage.ctrl.close();
 
     callback(messages);
   }
 
-  /// NOTE: Temporary implementation.
-  // TODO(youngseokyoon): properly implement with the ledger.
-  @override
-  void getMessage(List<int> messageId, void callback(Message message)) {
-    callback(_randomMessage());
-  }
-
-  /// NOTE: Temporary implementation.
-  // TODO(youngseokyoon): properly implement with the ledger.
+  // TODO(youngseokyoon): implement this more efficiently by only fetching the
+  // last message from the ledger.
   @override
   void getLastMessage(
     List<int> conversationId,
     void callback(Message message),
   ) {
-    callback(_randomMessage());
+    getMessageHistory(conversationId, (List<Message> messages) {
+      callback((messages == null || messages.isEmpty) ? null : messages.last);
+    });
   }
 
   /// NOTE: Temporary implementation.
@@ -301,19 +456,7 @@ class ChatContentProviderImpl extends ChatContentProvider {
   String _emailFromName(String name) =>
       '${name.toLowerCase().split(' ').join('.')}@example.com';
 
-  /// Temporary method for creating a random conversation.
-  Conversation _randomConversation() {
-    Random random = new Random();
-    List<User> participants = <User>[];
-    for (int i = 0; i < 2 + random.nextInt(2); ++i) {
-      participants.add(_randomUser());
-    }
-
-    return new Conversation.init(
-      _randomId(),
-      participants,
-    );
-  }
+  String _randomEmail() => _emailFromName(new Fixtures().name());
 
   /// Temporary method for creating a random message.
   Message _randomMessage() {

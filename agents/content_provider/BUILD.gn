@@ -10,6 +10,7 @@ dart_app("chat_content_provider") {
   deps = [
     "//application/lib/app/dart",
     "//application/services:services_dart",
+    "//apps/ledger/services/public:public_dart",
     "//apps/maxwell/services/suggestion:suggestion_dart",
     "//apps/modular/services/agent:agent_dart",
     "//apps/modules/chat/services:services_dart",
