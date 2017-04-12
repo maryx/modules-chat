@@ -7,6 +7,8 @@ import 'package:meta/meta.dart';
 import 'package:models/user.dart';
 import 'package:widgets/user.dart';
 
+import 'constants.dart';
+
 const double _kSizeRatio = 0.80;
 const double _kBorderSize = 2.0;
 
@@ -21,13 +23,18 @@ class ChatGroupAvatar extends StatelessWidget {
   /// Size of group avatar, defaults to 40.0
   final double size;
 
+  /// Indicates whether this conversation is currently selected or not.
+  final bool selected;
+
   /// Constructor
   ChatGroupAvatar({
     Key key,
     @required this.users,
     this.size: 40.0,
+    bool selected,
   })
-      : super(key: key) {
+      : selected = selected ?? false,
+        super(key: key) {
     assert(users != null);
     assert(users.isNotEmpty);
   }
@@ -67,7 +74,9 @@ class ChatGroupAvatar extends StatelessWidget {
                 ),
                 decoration: new BoxDecoration(
                   border: new Border.all(
-                    color: Colors.white,
+                    // TODO(youngseokyoon): make it look better with InkWell
+                    // https://fuchsia.atlassian.net/browse/SO-353
+                    color: selected ? kSelectedBgColor : Colors.white,
                     width: _kBorderSize,
                   ),
                   borderRadius: new BorderRadius.circular(size),

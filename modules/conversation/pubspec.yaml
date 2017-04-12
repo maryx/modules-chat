@@ -7,6 +7,8 @@ name: chat_conversation
 dependencies:
   flutter:
     sdk: flutter
+  lib.widgets:
+    path: ../../../../../lib/widgets/packages/widgets
   models:
     path: ../../../common/packages/models
   util:

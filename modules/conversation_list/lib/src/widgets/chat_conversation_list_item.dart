@@ -9,8 +9,7 @@ import 'package:util/time_util.dart';
 
 import '../models/conversation.dart';
 import 'chat_group_avatar.dart';
-
-final Color _kSelectedBgColor = Colors.blue[200].withOpacity(0.2);
+import 'constants.dart';
 
 /// UI Widget that represents a single chat conversation when viewing many chat
 /// conversations in a list.
@@ -45,10 +44,11 @@ class ChatConversationListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return new Material(
-      color: selected ? _kSelectedBgColor : Colors.white,
+      color: selected ? kSelectedBgColor : Colors.white,
       child: new ListTile(
         leading: new ChatGroupAvatar(
           users: conversation.participants,
+          selected: selected,
         ),
         title: new Text(
           _participantNames,
