@@ -33,9 +33,6 @@ class ChatConversationModuleModel extends ModuleModel {
   final ChatContentProviderProxy _chatContentProvider =
       new ChatContentProviderProxy();
 
-  final LinkWatcherBinding _linkWatcherBinding = new LinkWatcherBinding();
-  LinkWatcherImpl _linkWatcher;
-
   List<Message> _messages;
 
   Uint8List _conversationId;
@@ -91,14 +88,6 @@ class ChatConversationModuleModel extends ModuleModel {
     );
     connectToService(contentProviderServices, _chatContentProvider.ctrl);
 
-    // Register a LinkWatcher.
-    _linkWatcher = new LinkWatcherImpl(
-      onNotify: (String json) {
-        _setConversationId(JSON.decode(json));
-      },
-    );
-    link.watch(_linkWatcherBinding.wrap(_linkWatcher));
-
     // Close all the unnecessary bindings.
     contentProviderServices.ctrl.close();
     componentContext.ctrl.close();
@@ -126,11 +115,14 @@ class ChatConversationModuleModel extends ModuleModel {
 
   @override
   void onStop() {
-    _linkWatcherBinding.close();
-
     _chatContentProvider.ctrl.close();
     _chatContentProviderController.ctrl.close();
 
     super.onStop();
+  }
+
+  @override
+  void onNotify(String json) {
+    _setConversationId(JSON.decode(json));
   }
 }

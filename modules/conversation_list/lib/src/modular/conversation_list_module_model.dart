@@ -47,13 +47,16 @@ class ChatConversationListModuleModel extends ModuleModel {
   /// Gets and sets the current conversation id value.
   Uint8List get conversationId => _conversationId;
 
-  set conversationId(List<int> id) {
+  /// Sets the current conversation id value.
+  void setConversationId(List<int> id, {bool updateLink: true}) {
     Uint8List newId = id == null ? null : new Uint8List.fromList(id);
     if (!_intListEquality.equals(_conversationId, newId)) {
       _conversationId = newId;
 
       // Set the value to Link.
-      link.set(null, JSON.encode(id));
+      if (updateLink) {
+        link.set(null, JSON.encode(id));
+      }
 
       notifyListeners();
     }
@@ -135,5 +138,10 @@ class ChatConversationListModuleModel extends ModuleModel {
     _chatContentProviderController.ctrl.close();
 
     super.onStop();
+  }
+
+  @override
+  void onNotify(String json) {
+    setConversationId(JSON.decode(json), updateLink: false);
   }
 }
