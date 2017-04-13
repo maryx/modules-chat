@@ -63,19 +63,22 @@ class ChatConversationList extends StatelessWidget {
                 style: theme.textTheme.title,
               ),
             ),
-            new ListView(
-              shrinkWrap: true,
-              children: conversations
-                  .map(
-                    (Conversation c) => new ChatConversationListItem(
-                        conversation: c,
-                        onSelect: () => onSelectConversation?.call(c),
-                        selected: _intListEquality.equals(
-                          selectedId,
-                          c.conversationId,
-                        )),
-                  )
-                  .toList(),
+            new Expanded(
+              flex: 1,
+              child: new ListView(
+                shrinkWrap: true,
+                children: conversations
+                    .map(
+                      (Conversation c) => new ChatConversationListItem(
+                          conversation: c,
+                          onSelect: () => onSelectConversation?.call(c),
+                          selected: _intListEquality.equals(
+                            selectedId,
+                            c.conversationId,
+                          )),
+                    )
+                    .toList(),
+              ),
             ),
           ],
         ),
