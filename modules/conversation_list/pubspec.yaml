@@ -7,12 +7,12 @@ name: chat_conversation_list
 dependencies:
   flutter:
     sdk: flutter
+  lib.widgets:
+    path: ../../../../../lib/widgets/packages/widgets
   models:
     path: ../../../common/packages/models
   util:
     path: ../../../common/packages/util
-  widgets:
-    path: ../../../common/packages/widgets
   widgets_meta:
     path: ../../../common/packages/widgets_meta
 dev_dependencies:

@@ -4,8 +4,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
+import 'package:lib.widgets/widgets.dart';
 import 'package:models/user.dart';
-import 'package:widgets/user.dart';
 
 import 'constants.dart';
 
@@ -44,8 +44,9 @@ class ChatGroupAvatar extends StatelessWidget {
     if (users.length <= 0) {
       return new Offstage();
     } else if (users.length == 1) {
-      return new Alphatar.fromUser(
-        user: users[0],
+      return new Alphatar.fromNameAndUrl(
+        name: users[0].name,
+        avatarUrl: users[0].picture,
         size: size,
       );
     } else {
@@ -58,8 +59,9 @@ class ChatGroupAvatar extends StatelessWidget {
               right: 0.0,
               top: 0.0,
               child: new Container(
-                child: new Alphatar.fromUser(
-                  user: users[1],
+                child: new Alphatar.fromNameAndUrl(
+                  name: users[1].name,
+                  avatarUrl: users[1].picture,
                   size: size * _kSizeRatio,
                 ),
               ),
@@ -68,8 +70,9 @@ class ChatGroupAvatar extends StatelessWidget {
               left: -_kBorderSize,
               bottom: -_kBorderSize,
               child: new Container(
-                child: new Alphatar.fromUser(
-                  user: users[0],
+                child: new Alphatar.fromNameAndUrl(
+                  name: users[0].name,
+                  avatarUrl: users[0].picture,
                   size: size * _kSizeRatio,
                 ),
                 decoration: new BoxDecoration(

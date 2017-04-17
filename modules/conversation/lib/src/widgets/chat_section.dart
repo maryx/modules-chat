@@ -3,10 +3,10 @@
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
+import 'package:lib.widgets/widgets.dart';
 import 'package:meta/meta.dart';
 import 'package:models/user.dart';
 import 'package:util/time_util.dart';
-import 'package:widgets/user.dart';
 
 import 'chat_bubble.dart';
 
@@ -52,7 +52,10 @@ class ChatSection extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget alphatar = new Container(
       margin: const EdgeInsets.symmetric(horizontal: 4.0),
-      child: new Alphatar.fromUser(user: user),
+      child: new Alphatar.fromNameAndUrl(
+        name: user.name,
+        avatarUrl: user.picture,
+      ),
     );
     Widget chatColumn = new Expanded(
       child: new Column(
