@@ -44,7 +44,7 @@ class ChatSection extends StatelessWidget {
     assert(user != null);
     assert(chatBubbles != null);
     chatBubbles.forEach((ChatBubble bubble) {
-      assert(bubble.orientation == orientation);
+      assert(bubble.orientation == this.orientation);
     });
   }
 
