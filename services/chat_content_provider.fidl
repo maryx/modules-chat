@@ -43,6 +43,7 @@ struct Message {
   int64 timestamp;
 
   // The email address of the sender.
+  // A special value "me" indicates that this message is from the current user.
   string sender;
 
   // Message type (text, image, module).
@@ -66,9 +67,23 @@ interface ChatContentProvider {
   // the obtained conversation id.
   GetConversations() => (array<Conversation> conversations);
 
-  // Gets the list of all messages in the specified conversation.
-  // TODO(youngseokyoon): provide a way to retrieve recent messages only.
-  GetMessageHistory(array<uint8> conversation_id) => (array<Message> messages);
+  // Gets the list of all |Message|s in the specified conversation.
+  // When the |message_queue_token| value is provided, the client will be
+  // notified with any new messages added after the initial snapshot is sent.
+  //
+  // The message sent from the content provider will be a JSON string formatted
+  // as following:
+  //
+  //     {"conversation_id":<conversation_id>, "message_id":<message_id>}
+  //
+  // The client should then make a subsequent |GetMessage| call to retrieve the
+  // actual message content.
+  GetMessages(array<uint8> conversation_id, string? message_queue_token)
+      => (array<Message> messages);
+
+  // Gets the specified |Message|.
+  GetMessage(array<uint8> conversation_id, array<uint8> message_id)
+      => (Message? message);
 
   // Gets the last message of the specified conversation.
   // The returned message can be null if the specified conversation does not
@@ -81,5 +96,10 @@ interface ChatContentProvider {
   SendMessage(array<uint8> conversation_id, string type, string json_payload)
       => (array<uint8> message_id);
 
-  // TODO(youngseokyoon): add suggestion/notification related functions.
+  // Notifies the agent that the specified message queue should no longer be
+  // used to send more notifications.
+  //
+  // Clients who passed a |message_queue_token| in a prior |GetMessages| call
+  // should call |Unsubscribe| when it no longer needs to be notified.
+  Unsubscribe(string message_queue_token);
 };

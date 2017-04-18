@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:async';
 import 'dart:convert' show JSON;
 import 'dart:typed_data';
 
@@ -9,6 +10,7 @@ import 'package:application.lib.app.dart/app.dart';
 import 'package:application.services/service_provider.fidl.dart';
 import 'package:apps.modular.services.agent.agent_controller/agent_controller.fidl.dart';
 import 'package:apps.modular.services.component/component_context.fidl.dart';
+import 'package:apps.modular.services.component/message_queue.fidl.dart';
 import 'package:apps.modular.services.module/module_context.fidl.dart';
 import 'package:apps.modular.services.story/link.fidl.dart';
 import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart';
@@ -33,12 +35,12 @@ class ChatConversationModuleModel extends ModuleModel {
   final ChatContentProviderProxy _chatContentProvider =
       new ChatContentProviderProxy();
 
+  final MessageQueueProxy _messageQueue = new MessageQueueProxy();
+  final Completer<String> _mqTokenCompleter = new Completer<String>();
+
   List<Message> _messages;
 
   Uint8List _conversationId;
-
-  /// Gets the [ChatContentProvider] service provided by the agent.
-  ChatContentProvider get chatContentProvider => _chatContentProvider;
 
   /// Gets the current conversation id value.
   Uint8List get conversationId => _conversationId;
@@ -88,6 +90,15 @@ class ChatConversationModuleModel extends ModuleModel {
     );
     connectToService(contentProviderServices, _chatContentProvider.ctrl);
 
+    // Obtain a message queue.
+    componentContext.obtainMessageQueue(
+      'chat_conversation',
+      _messageQueue.ctrl.request(),
+    );
+    // Save the message queue token for later use.
+    _messageQueue.getToken((String token) => _mqTokenCompleter.complete(token));
+    _messageQueue.receive(_handleNewMessage);
+
     // Close all the unnecessary bindings.
     contentProviderServices.ctrl.close();
     componentContext.ctrl.close();
@@ -96,15 +107,22 @@ class ChatConversationModuleModel extends ModuleModel {
     _fetchMessageHistory();
   }
 
-  void _fetchMessageHistory() {
+  /// Fetches the message history from the content provider. It also gives our
+  /// message queue token to the agent so that the agent can notify us whenever
+  /// a new message appears in the current conversation.
+  ///
+  /// The returned messages will be stored in the [messages] list.
+  Future<Null> _fetchMessageHistory() async {
     _log('fetchMessageHistory call.');
 
     if (conversationId == null) {
       return;
     }
 
-    chatContentProvider.getMessageHistory(
+    String messageQueueToken = await _mqTokenCompleter.future;
+    _chatContentProvider.getMessages(
       conversationId,
+      messageQueueToken,
       (List<Message> messages) {
         _log('getMessageHistory callback.');
         _messages = new List<Message>.from(messages);
@@ -113,8 +131,49 @@ class ChatConversationModuleModel extends ModuleModel {
     );
   }
 
+  /// Handle the new message passed via the [MessageQueue].
+  ///
+  /// Refer to the `chat_content_provider.fidl` file for the expected message
+  /// format coming from the content provider.
+  void _handleNewMessage(String message) {
+    _log('handleNewMessage call with message:$message');
+    try {
+      Map<String, dynamic> decoded = JSON.decode(message);
+      List<int> conversationId = decoded['conversation_id'];
+      List<int> messageId = decoded['message_id'];
+
+      // Ask for the new message content and add it to the message list.
+      _chatContentProvider.getMessage(
+        conversationId,
+        messageId,
+        (Message message) {
+          _log('getMessage() callback');
+          if (message != null &&
+              _intListEquality.equals(this.conversationId, conversationId)) {
+            _log('adding the new message.');
+            _messages?.add(message);
+            notifyListeners();
+          }
+        },
+      );
+    } catch (e) {
+      _log('Error occurred while processing the message received via the '
+          'message queue: $e');
+    } finally {
+      // Register the handler again to process further messages.
+      _log('calling _messageQueue.receive again');
+      _messageQueue.receive(_handleNewMessage);
+    }
+  }
+
   @override
-  void onStop() {
+  Future<Null> onStop() async {
+    if (_mqTokenCompleter.isCompleted) {
+      String messageQueueToken = await _mqTokenCompleter.future;
+      _chatContentProvider.unsubscribe(messageQueueToken);
+    }
+
+    _messageQueue.ctrl.close();
     _chatContentProvider.ctrl.close();
     _chatContentProviderController.ctrl.close();
 
@@ -124,5 +183,16 @@ class ChatConversationModuleModel extends ModuleModel {
   @override
   void onNotify(String json) {
     _setConversationId(JSON.decode(json));
+  }
+
+  /// Send a new message to the current conversation.
+  /// Internally, it invokes the [ChatContentProvider.sendMessage] method.
+  void sendMessage(String message) {
+    _chatContentProvider.sendMessage(
+      conversationId,
+      'text',
+      message,
+      (_) => null,
+    );
   }
 }

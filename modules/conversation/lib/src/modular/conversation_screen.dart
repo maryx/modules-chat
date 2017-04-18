@@ -16,6 +16,12 @@ class ChatConversationScreen extends StatelessWidget {
   /// Creates a new instance of [ChatConversationScreen].
   ChatConversationScreen({Key key}) : super(key: key);
 
+  static int _compareMessages(chat_fidl.Message m1, chat_fidl.Message m2) {
+    if (m1.timestamp < m2.timestamp) return -1;
+    if (m1.timestamp > m2.timestamp) return 1;
+    return 0;
+  }
+
   @override
   Widget build(BuildContext context) {
     return new MaterialApp(
@@ -27,12 +33,14 @@ class ChatConversationScreen extends StatelessWidget {
             Widget child,
             ChatConversationModuleModel conversationModel,
           ) {
+            List<chat_fidl.Message> sorted = conversationModel.messages == null
+                ? const <chat_fidl.Message>[]
+                : (new List<chat_fidl.Message>.from(conversationModel.messages)
+                  ..sort(_compareMessages));
+
             return new ChatConversation(
-              chatSections: conversationModel.messages == null
-                  ? const <ChatSection>[]
-                  : conversationModel.messages
-                      .map(_buildSectionFromMessage)
-                      .toList(),
+              chatSections: sorted.map(_buildSectionFromMessage).toList(),
+              onSubmitMessage: conversationModel.sendMessage,
             );
           },
         ),
@@ -41,13 +49,21 @@ class ChatConversationScreen extends StatelessWidget {
   }
 
   ChatSection _buildSectionFromMessage(chat_fidl.Message message) {
+    ChatBubbleOrientation orientation = message.sender == 'me'
+        ? ChatBubbleOrientation.right
+        : ChatBubbleOrientation.left;
+
     return new ChatSection(
+      orientation: orientation,
       user: new User(
         email: message.sender,
         name: message.sender,
       ),
       chatBubbles: <ChatBubble>[
-        new ChatBubble(child: new Text(message.jsonPayload)),
+        new ChatBubble(
+          child: new Text(message.jsonPayload),
+          orientation: orientation,
+        ),
       ],
     );
   }

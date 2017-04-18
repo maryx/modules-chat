@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'dart:convert' show JSON, UTF8;
+import 'dart:math' show Random;
 import 'dart:typed_data' show ByteData, Uint8List;
 
 import 'package:apps.ledger.services.public/ledger.fidl.dart';
@@ -85,4 +86,15 @@ Future<Null> _getFullEntriesRecursively(
       token: nextToken,
     );
   }
+}
+
+/// Returns a randomly generated id value. Each element in the returned [List]
+/// is a byte value, and the length of it will be equal to [lengthInBytes].
+List<int> generateRandomId(int lengthInBytes) {
+  Random random = new Random(new DateTime.now().millisecondsSinceEpoch);
+  Uint8List id = new Uint8List(lengthInBytes);
+  for (int i = 0; i < id.lengthInBytes; ++i) {
+    id[i] = random.nextInt(256);
+  }
+  return id;
 }

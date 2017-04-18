@@ -3,8 +3,8 @@
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
-import 'package:meta/meta.dart';
 import 'package:lib.widgets/widgets.dart';
+import 'package:meta/meta.dart';
 import 'package:models/user.dart';
 
 import 'constants.dart';

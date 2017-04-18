@@ -19,11 +19,15 @@ class ChatConversation extends StatelessWidget {
   /// Title of thread
   final String title;
 
+  /// Callback for when a new message is submitted
+  final ValueChanged<String> onSubmitMessage;
+
   /// Constructor
   ChatConversation({
     Key key,
     @required this.chatSections,
     this.title,
+    this.onSubmitMessage,
   })
       : super(key: key) {
     assert(this.chatSections != null);
@@ -65,7 +69,7 @@ class ChatConversation extends StatelessWidget {
           right: 0.0,
           left: 0.0,
           child: new MessageInput(
-            onSubmitMessage: (String msg) => print('Message: $msg'),
+            onSubmitMessage: onSubmitMessage,
           ),
         ),
       ],
