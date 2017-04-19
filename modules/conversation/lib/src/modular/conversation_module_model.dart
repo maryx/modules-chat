@@ -15,10 +15,15 @@ import 'package:apps.modular.services.module/module_context.fidl.dart';
 import 'package:apps.modular.services.story/link.fidl.dart';
 import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart';
 import 'package:collection/collection.dart';
+import 'package:flutter/widgets.dart';
 import 'package:lib.widgets/modular.dart';
+
+import '../widgets.dart';
 
 const String _kChatContentProviderUrl =
     'file:///system/apps/chat_content_provider';
+
+const Duration _kScrollAnimationDuration = const Duration(milliseconds: 300);
 
 void _log(String msg) {
   print('[chat_conversation_module_model] $msg');
@@ -52,6 +57,11 @@ class ChatConversationModuleModel extends ModuleModel {
       _messages = null;
       _conversationId = newId;
 
+      // We don't want to reuse the existing scroll controller, so create a new
+      // one here. Otherwise, the scroll position will animate when jumping
+      // between different conversation rooms.
+      _scrollController = new ScrollController();
+
       // We notify here first to indicate the conversation id value is changed.
       notifyListeners();
 
@@ -66,6 +76,14 @@ class ChatConversationModuleModel extends ModuleModel {
   /// provider.
   List<Message> get messages =>
       _messages == null ? null : new List<Message>.unmodifiable(_messages);
+
+  ScrollController _scrollController;
+
+  /// Gets the [ScrollController] to be used in the [ChatConversation] widget.
+  ///
+  /// This is needed here because we want to programmatically manipulate the
+  /// scroll position when a new message is added.
+  ScrollController get scrollController => _scrollController;
 
   @override
   void onReady(
@@ -153,6 +171,8 @@ class ChatConversationModuleModel extends ModuleModel {
             _log('adding the new message.');
             _messages?.add(message);
             notifyListeners();
+
+            _scrollToEnd();
           }
         },
       );
@@ -164,6 +184,18 @@ class ChatConversationModuleModel extends ModuleModel {
       _log('calling _messageQueue.receive again');
       _messageQueue.receive(_handleNewMessage);
     }
+  }
+
+  /// Auto-scroll the chat conversation list to the end.
+  ///
+  /// Because the [ListView] used inside the [ChatConversation] widget is a
+  /// reversed list, we can simply animate to 0.0 to scroll to end.
+  void _scrollToEnd() {
+    _scrollController.animateTo(
+      0.0,
+      curve: Curves.easeOut,
+      duration: _kScrollAnimationDuration,
+    );
   }
 
   @override

@@ -41,6 +41,7 @@ class ChatConversationScreen extends StatelessWidget {
             return new ChatConversation(
               chatSections: sorted.map(_buildSectionFromMessage).toList(),
               onSubmitMessage: conversationModel.sendMessage,
+              scrollController: conversationModel.scrollController,
             );
           },
         ),
