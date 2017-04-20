@@ -4,19 +4,15 @@
 
 module chat_content_provider;
 
-// TODO(youngseokyoon): consider adding status codes to all operations.
-
-// Represents a chat user.
-struct User {
-  // Email address for the user.
-  // This email address will be the unique ID of this user in the chat app.
-  string email_address;
-
-  // Display name for the user.
-  string? display_name;
-
-  // Profile picture url for the user (can be null).
-  string? profile_picture_url;
+// Status codes for all |ChatContentProvider| operations.
+enum ChatStatus {
+  OK = 0,
+  ID_NOT_FOUND,
+  LEDGER_NOT_INITIALIZED,
+  LEDGER_OPERATION_ERROR,
+  AUTHENTICATION_ERROR,
+  DECODING_ERROR,
+  UNKNOWN_ERROR = -1,
 };
 
 // Contains metadata of a chat conversation (i.e. chat room).
@@ -27,9 +23,9 @@ struct Conversation {
   // Unique id of this conversation.
   array<uint8> conversation_id;
 
-  // List of users participating in this conversation, including the current
-  // user.
-  array<User> participants;
+  // List of the email addresses of the users participating in this conversation
+  // including the current user.
+  array<string> participants;
 };
 
 // Represents a chat message.
@@ -55,17 +51,10 @@ struct Message {
 
 [ServiceName="chat_content_provider.ChatContentProvider"]
 interface ChatContentProvider {
-  // TODO(youngseokyoon): remove if this is not needed.
-  Me() => (User user);
-
-  // Gets the |User| data associated with the given email address.
-  // Return value can be null if there is no user with the given email address.
-  GetUser(string email_address) => (User? user);
-
   // Returns the list of metadata of all existing conversations.
   // To obtain the conversation history, use the |GetMessageHistory| method with
   // the obtained conversation id.
-  GetConversations() => (array<Conversation> conversations);
+  GetConversations() => (ChatStatus status, array<Conversation> conversations);
 
   // Gets the list of all |Message|s in the specified conversation.
   // When the |message_queue_token| value is provided, the client will be
@@ -79,22 +68,23 @@ interface ChatContentProvider {
   // The client should then make a subsequent |GetMessage| call to retrieve the
   // actual message content.
   GetMessages(array<uint8> conversation_id, string? message_queue_token)
-      => (array<Message> messages);
+      => (ChatStatus status, array<Message> messages);
 
   // Gets the specified |Message|.
   GetMessage(array<uint8> conversation_id, array<uint8> message_id)
-      => (Message? message);
+      => (ChatStatus status, Message? message);
 
   // Gets the last message of the specified conversation.
   // The returned message can be null if the specified conversation does not
   // exist or the conversation is empty.
   // Intended to be used by the chat_conversation_list module.
-  GetLastMessage(array<uint8> conversation_id) => (Message? message);
+  GetLastMessage(array<uint8> conversation_id)
+      => (ChatStatus status, Message? message);
 
   // Sends a new message to the specified conversation.
   // Returns the created message id.
   SendMessage(array<uint8> conversation_id, string type, string json_payload)
-      => (array<uint8> message_id);
+      => (ChatStatus status, array<uint8> message_id);
 
   // Notifies the agent that the specified message queue should no longer be
   // used to send more notifications.

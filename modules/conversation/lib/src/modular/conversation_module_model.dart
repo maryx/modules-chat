@@ -75,7 +75,7 @@ class ChatConversationModuleModel extends ModuleModel {
   /// Returns null when the messages are not yet retrieved from the content
   /// provider.
   List<Message> get messages =>
-      _messages == null ? null : new List<Message>.unmodifiable(_messages);
+      _messages == null ? null : new UnmodifiableListView<Message>(_messages);
 
   ScrollController _scrollController;
 
@@ -141,8 +141,18 @@ class ChatConversationModuleModel extends ModuleModel {
     _chatContentProvider.getMessages(
       conversationId,
       messageQueueToken,
-      (List<Message> messages) {
+      (ChatStatus status, List<Message> messages) {
         _log('getMessageHistory callback.');
+
+        // TODO(youngseokyoon): properly communicate the error status to the
+        // user. (https://fuchsia.atlassian.net/browse/SO-365)
+        if (status != ChatStatus.ok) {
+          _log('ChatContentProvider::GetMessages() returned an error '
+              'status: $status');
+          _messages = null;
+          notifyListeners();
+        }
+
         _messages = new List<Message>.from(messages);
         notifyListeners();
       },
@@ -164,8 +174,17 @@ class ChatConversationModuleModel extends ModuleModel {
       _chatContentProvider.getMessage(
         conversationId,
         messageId,
-        (Message message) {
+        (ChatStatus status, Message message) {
           _log('getMessage() callback');
+
+          // TODO(youngseokyoon): properly communicate the error status to the
+          // user. (https://fuchsia.atlassian.net/browse/SO-365)
+          if (status != ChatStatus.ok) {
+            _log('ChatContentProvider::GetMessage() returned an error '
+                'status: $status');
+            return;
+          }
+
           if (message != null &&
               _intListEquality.equals(this.conversationId, conversationId)) {
             _log('adding the new message.');
@@ -224,7 +243,7 @@ class ChatConversationModuleModel extends ModuleModel {
       conversationId,
       'text',
       message,
-      (_) => null,
+      (_, __) => null,
     );
   }
 }

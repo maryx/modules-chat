@@ -67,7 +67,7 @@ class ChatConversationListModuleModel extends ModuleModel {
   /// Returns null when the conversation list is not yet retrieved.
   List<Conversation> get conversations => _conversations == null
       ? null
-      : new List<Conversation>.unmodifiable(_conversations);
+      : new UnmodifiableListView<Conversation>(_conversations);
 
   @override
   void onReady(
@@ -104,8 +104,20 @@ class ChatConversationListModuleModel extends ModuleModel {
     _log('_fetchConversations call.');
 
     chatContentProvider.getConversations(
-      (List<chat_fidl.Conversation> conversations) {
+      (
+        chat_fidl.ChatStatus status,
+        List<chat_fidl.Conversation> conversations,
+      ) {
         _log('getConversations callback.');
+
+        // TODO(youngseokyoon): properly communicate the error status to the
+        // user. (https://fuchsia.atlassian.net/browse/SO-365)
+        if (status != chat_fidl.ChatStatus.ok) {
+          _log('ChatContentProvider::GetConversations() returned an error '
+              'status: $status');
+          _conversations = null;
+          notifyListeners();
+        }
 
         _conversations = conversations == null
             ? null
@@ -120,16 +132,15 @@ class ChatConversationListModuleModel extends ModuleModel {
   Conversation _getConversationFromFidl(chat_fidl.Conversation c) =>
       new Conversation(
         conversationId: c.conversationId,
-        participants: c.participants.map(_getUserFromFidl).toList(),
+        participants: c.participants.map(_getUserFromEmail).toList(),
         snippet: null,
         timestamp: null,
       );
 
-  User _getUserFromFidl(chat_fidl.User u) => new User(
-        email: u.emailAddress,
-        // TODO(youngseokyoon): handle empty name properly.
-        name: u.displayName ?? u.emailAddress,
-        picture: u.profilePictureUrl,
+  User _getUserFromEmail(String email) => new User(
+        email: email,
+        name: email,
+        picture: null,
       );
 
   @override
