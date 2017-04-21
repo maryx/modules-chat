@@ -10,10 +10,12 @@ import 'package:application.services/service_provider.fidl.dart';
 import 'package:apps.modular.services.agent.agent_controller/agent_controller.fidl.dart';
 import 'package:apps.modular.services.component/component_context.fidl.dart';
 import 'package:apps.modular.services.module/module_context.fidl.dart';
+import 'package:apps.modular.services.module/module_controller.fidl.dart';
 import 'package:apps.modular.services.story/link.fidl.dart';
 import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart'
     as chat_fidl;
 import 'package:collection/collection.dart';
+import 'package:lib.fidl.dart/bindings.dart';
 import 'package:lib.widgets/modular.dart';
 import 'package:models/user.dart';
 
@@ -21,6 +23,8 @@ import '../models.dart';
 
 const String _kChatContentProviderUrl =
     'file:///system/apps/chat_content_provider';
+const String _kChatConversationModuleUrl =
+    'file:///system/apps/chat_conversation';
 
 void _log(String msg) {
   print('[chat_conversation_list_module_model] $msg');
@@ -78,6 +82,8 @@ class ChatConversationListModuleModel extends ModuleModel {
     super.onReady(moduleContext, link, incomingServices);
 
     _log('ModuleModel::onReady call.');
+    // Start the chat conversation module.
+    _startConversationModule();
 
     // Obtain the component context.
     ComponentContextProxy componentContext = new ComponentContextProxy();
@@ -98,6 +104,29 @@ class ChatConversationListModuleModel extends ModuleModel {
 
     // Fetch the conversation list.
     _fetchConversations();
+  }
+
+  /// Start the chat_conversation module in story shell.
+  void _startConversationModule() {
+    InterfacePair<ModuleController> moduleControllerPair =
+        new InterfacePair<ModuleController>();
+
+    moduleContext.startModuleInShell(
+      'chat_conversation',
+      _kChatConversationModuleUrl,
+      _duplicateLink(),
+      null,
+      null,
+      moduleControllerPair.passRequest(),
+      'h', // for 'hierarchical' view type.
+    );
+  }
+
+  /// Obtains a duplicated [InterfaceHandle] for the given [Link] object.
+  InterfaceHandle<Link> _duplicateLink() {
+    InterfacePair<Link> linkPair = new InterfacePair<Link>();
+    link.dup(linkPair.passRequest());
+    return linkPair.passHandle();
   }
 
   void _fetchConversations() {

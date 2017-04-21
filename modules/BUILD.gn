@@ -6,6 +6,5 @@ group("modules") {
   deps = [
     "conversation:chat_conversation",
     "conversation_list:chat_conversation_list",
-    "story:chat_story",
   ]
 }
