@@ -2,14 +2,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import("//build/dart/dart_test.gni")
 import("//flutter/build/flutter_app.gni")
 
 flutter_app("chat_conversation") {
   package_name = "chat_conversation"
 
   main_dart = "lib/main.dart"
-
-  source_dir = "lib"
 
   deps = [
     "//application/lib/app/dart",
@@ -22,6 +21,16 @@ flutter_app("chat_conversation") {
     "//lib/fidl/dart",
     "//lib/flutter/packages/flutter",
     "//lib/widgets/packages/widgets:lib.widgets",
+  ]
+
+  analysis_options = "//apps/modules/common/.analysis_options"
+}
+
+dart_test("test") {
+  deps = [
+    "//apps/modules/chat/modules/conversation:chat_conversation_dart_package",
+    "//lib/flutter/packages/flutter_test",
+    "//third_party/dart-pkg/pub/test",
   ]
 
   analysis_options = "//apps/modules/common/.analysis_options"
