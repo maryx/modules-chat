@@ -13,7 +13,6 @@ import 'package:apps.modular.services.component/message_queue.fidl.dart';
 import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart';
 import 'package:collection/collection.dart';
 import 'package:config/config.dart';
-import 'package:fixtures/fixtures.dart';
 import 'package:http/http.dart' as http;
 import 'package:lib.fidl.dart/bindings.dart' show InterfaceRequest;
 import 'package:lib.fidl.dart/core.dart' show Vmo;
@@ -21,6 +20,7 @@ import 'package:quiver/core.dart' as quiver;
 
 import 'base_page_watcher.dart';
 import 'ledger_utils.dart';
+import 'new_conversation_watcher.dart';
 import 'new_message_watcher.dart';
 
 void _log(String msg) {
@@ -79,9 +79,6 @@ class ChatContentProviderImpl extends ChatContentProvider {
   final Map<String, PageProxy> _reservedPages = <String, PageProxy>{};
   Page get _conversationsPage => _reservedPages['conversations'];
 
-  /// Indicates whether the chat content provider is properly initialized.
-  final Completer<Null> _ledgerReady = new Completer<Null>();
-
   /// Local cache of the [Conversation] objects.
   ///
   /// We have to manually provide the hashCode / equals implementation so that
@@ -93,6 +90,12 @@ class ChatContentProviderImpl extends ChatContentProvider {
     hashCode: (List<int> key) => quiver.hashObjects(key),
     isValidKey: (dynamic key) => key is List<int>,
   );
+
+  /// Indicates whether the [Ledger] initialization is successfully done.
+  final Completer<Null> _ledgerReady = new Completer<Null>();
+
+  /// Indicates whether the Firebase DB initialization is successfully done.
+  final Completer<Null> _firebaseReady = new Completer<Null>();
 
   /// Runs the startup logic for the chat content provider.
   Future<Null> initialize(ComponentContext componentContext) async {
@@ -156,159 +159,102 @@ class ChatContentProviderImpl extends ChatContentProvider {
     }
   }
 
-  /// Temporary method for adding some sample data.
-  // TODO(youngseokyoon): take this out.
-  Future<Null> addTestData() async {
-    for (int i = 0; i < 3; ++i) {
-      await _addConversation();
-    }
-  }
-
-  Future<Null> _addConversation() async {
-    // Request a new page from Ledger.
-    PageProxy newConversationPage = new PageProxy();
-    _ledger.getPage(null, newConversationPage.ctrl.request(), (Status status) {
-      if (status != Status.ok) {
-        throw new Exception(
-          'Ledger::GetPage() returned an error status: $status',
-        );
-      }
-    });
-
-    // Get the ID of that page, which will be used as the conversation id.
-    Completer<Uint8List> idCompleter = new Completer<Uint8List>();
-    newConversationPage.getId(
-      (List<int> id) => idCompleter.complete(new Uint8List.fromList(id)),
-    );
-    Uint8List conversationId = await idCompleter.future;
-
-    // Put the conversation entry to the conversations page.
-    Completer<Status> statusCompleter = new Completer<Status>();
-    _conversationsPage.put(
-      conversationId,
-      encodeLedgerValue(<String, dynamic>{
-        'participants': <String>[_randomEmail(), _randomEmail()],
-      }),
-      (Status s) => statusCompleter.complete(s),
-    );
-    Status status = await statusCompleter.future;
-    if (status != Status.ok) {
-      throw new Exception('Page::Put() returned an error status: $status');
-    }
-
-    // Put some example data in the conversation log page.
-    for (int i = 0; i < 3; ++i) {
-      Message message = _randomMessage();
-      Map<String, dynamic> messageObject = <String, dynamic>{
-        'sender': message.sender,
-        'type': message.type,
-        'json_payload': message.jsonPayload,
-      };
-
-      Uint8List messageId = new Uint8List(_kKeyLengthInBytes);
-      messageId[_kKeyLengthInBytes - 1] = i + 1;
-      statusCompleter = new Completer<Status>();
-      newConversationPage.put(
-        messageId,
-        encodeLedgerValue(messageObject),
-        (Status s) => statusCompleter.complete(s),
-      );
-      status = await statusCompleter.future;
-      if (status != Status.ok) {
-        throw new Exception(
-          'Page::Put() returned an error status: $status',
-        );
-      }
-    }
-
-    // Close the page.
-    newConversationPage.ctrl.close();
-  }
-
   /// Sign in to the firebase DB using the given google auth credentials.
   Future<Null> _signInToFirebase() async {
-    // First, see if the required config values are all provided.
-    Config config = await Config.read('/system/data/modules/config.json');
-    List<String> keys = <String>[
-      'chat_firebase_api_key',
-      'chat_firebase_project_id',
-      'id_token',
-      'oauth_token',
-    ];
-
-    config.validate(keys);
-    _config = config;
-
-    // Make a call to identitytoolkit API to register the current user to the
-    // Firebase project, and obtain the Firebase UID for this user.
-    Uri identityToolkitUrl = new Uri.https(
-      'www.googleapis.com',
-      '/identitytoolkit/v3/relyingparty/verifyAssertion',
-      <String, String>{
-        'key': _config.get('chat_firebase_api_key'),
-      },
-    );
-
-    http.Response identityToolkitResponse = await http.post(
-      identityToolkitUrl,
-      headers: <String, String>{
-        'accept': 'application/json',
-        'content-type': 'application/json',
-      },
-      body: JSON.encode(<String, dynamic>{
-        'postBody': 'id_token=${_config.get('id_token')}&providerId=google.com',
-        'requestUri': 'http://localhost',
-        'returnIdpCredential': true,
-        'returnSecureToken': true,
-      }),
-    );
-
-    if (identityToolkitResponse.statusCode != 200 ||
-        (identityToolkitResponse.body?.isEmpty ?? true)) {
-      throw new Exception(
-          'identityToolkit#verifyAssertion call was unsuccessful.\n'
-          'status code: ${identityToolkitResponse.statusCode}\n'
-          'body: ${identityToolkitResponse.body}');
-    }
-
-    // Parse the response.
-    String responseBody = identityToolkitResponse.body;
-    dynamic responseJson;
     try {
-      responseJson = JSON.decode(responseBody);
+      // First, see if the required config values are all provided.
+      Config config = await Config.read('/system/data/modules/config.json');
+      List<String> keys = <String>[
+        'chat_firebase_api_key',
+        'chat_firebase_project_id',
+        'id_token',
+        'oauth_token',
+      ];
+
+      config.validate(keys);
+      _config = config;
+
+      // Make a call to identitytoolkit API to register the current user to the
+      // Firebase project, and obtain the Firebase UID for this user.
+      Uri identityToolkitUrl = new Uri.https(
+        'www.googleapis.com',
+        '/identitytoolkit/v3/relyingparty/verifyAssertion',
+        <String, String>{
+          'key': _config.get('chat_firebase_api_key'),
+        },
+      );
+
+      http.Response identityToolkitResponse = await http.post(
+        identityToolkitUrl,
+        headers: <String, String>{
+          'accept': 'application/json',
+          'content-type': 'application/json',
+        },
+        body: JSON.encode(<String, dynamic>{
+          'postBody':
+              'id_token=${_config.get('id_token')}&providerId=google.com',
+          'requestUri': 'http://localhost',
+          'returnIdpCredential': true,
+          'returnSecureToken': true,
+        }),
+      );
+
+      if (identityToolkitResponse.statusCode != 200 ||
+          (identityToolkitResponse.body?.isEmpty ?? true)) {
+        throw new Exception(
+            'identityToolkit#verifyAssertion call was unsuccessful.\n'
+            'status code: ${identityToolkitResponse.statusCode}\n'
+            'body: ${identityToolkitResponse.body}');
+      }
+
+      // Parse the response.
+      String responseBody = identityToolkitResponse.body;
+      dynamic responseJson;
+      try {
+        responseJson = JSON.decode(responseBody);
+      } catch (e) {
+        throw new Exception(
+            'Error parsing JSON response from identityToolkit#verifyAssertion '
+            'response.\n'
+            'body: $responseBody');
+      }
+
+      _firebaseUid = responseJson['localId'];
+      _email = _normalizeEmail(responseJson['email']);
+      _firebaseAuthToken = responseJson['idToken'];
+
+      if (_firebaseUid == null ||
+          _email == null ||
+          _firebaseAuthToken == null) {
+        throw new Exception(
+            'identityToolkit#verifyAssertion response is missing one of the '
+            'expected parameters (localId, email, idToken).\n'
+            'body: $responseBody');
+      }
+
+      _firebaseReady.complete();
     } catch (e) {
-      throw new Exception(
-          'Error parsing JSON response from identityToolkit#verifyAssertion '
-          'response.\n'
-          'body: $responseBody');
-    }
-
-    _firebaseUid = responseJson['localId'];
-    _email = _normalizeEmail(responseJson['email']);
-    _firebaseAuthToken = responseJson['idToken'];
-
-    if (_firebaseUid == null || _email == null || _firebaseAuthToken == null) {
-      throw new Exception(
-          'identityToolkit#verifyAssertion response is missing one of the '
-          'expected parameters (localId, email, idToken).\n'
-          'body: $responseBody');
+      _firebaseReady.completeError(e);
+      rethrow;
     }
   }
 
   /// Make a GET request to the firebase DB.
   // ignore: unused_element
-  Future<http.Response> _firebaseDBGet(String path) {
+  Future<http.Response> _firebaseDBGet(String path) async {
+    await _firebaseReady.future;
+
     Uri url = _getFirebaseUrl(path);
-    return http.get(
-      url,
-    );
+    return await http.get(url);
   }
 
   /// Make a PUT request to the firebase DB.
   // ignore: unused_element
-  Future<http.Response> _firebaseDBPut(String path, dynamic data) {
+  Future<http.Response> _firebaseDBPut(String path, dynamic data) async {
+    await _firebaseReady.future;
+
     Uri url = _getFirebaseUrl(path);
-    return http.put(
+    return await http.put(
       url,
       headers: <String, String>{
         'content-type': 'application/json',
@@ -326,6 +272,13 @@ class ChatContentProviderImpl extends ChatContentProvider {
         'auth': _firebaseAuthToken,
       },
     );
+  }
+
+  /// Returns true if the given [email] address is not a valid one.
+  bool _isEmailNotValid(String email) {
+    // TODO(youngseokyoon): implement this properly.
+    // https://fuchsia.atlassian.net/browse/SO-370
+    return false;
   }
 
   /// Normalize the email address.
@@ -364,7 +317,88 @@ class ChatContentProviderImpl extends ChatContentProvider {
   }
 
   @override
+  Future<Null> newConversation(
+    List<String> participants,
+    void callback(
+      ChatStatus chatStatus,
+      Conversation conversation,
+    ),
+  ) async {
+    try {
+      try {
+        await _ledgerReady.future;
+      } catch (e) {
+        callback(ChatStatus.ledgerNotInitialized, null);
+        return;
+      }
+
+      // Validate the email addresses first.
+      if (participants == null || participants.any(_isEmailNotValid)) {
+        callback(ChatStatus.invalidEmailAddress, null);
+        return;
+      }
+
+      PageProxy newConversationPage = new PageProxy();
+
+      try {
+        // Request a new page from Ledger.
+        Completer<Status> statusCompleter = new Completer<Status>();
+        _ledger.getPage(
+          null,
+          newConversationPage.ctrl.request(),
+          statusCompleter.complete,
+        );
+
+        Status status = await statusCompleter.future;
+        if (status != Status.ok) {
+          _log('Ledger::GetPage() returned an error status: $status');
+          callback(ChatStatus.ledgerOperationError, null);
+          return;
+        }
+
+        // Get the ID of that page, which will be used as the conversation id.
+        Completer<Uint8List> idCompleter = new Completer<Uint8List>();
+        newConversationPage.getId(
+          (List<int> id) => idCompleter.complete(new Uint8List.fromList(id)),
+        );
+        Uint8List conversationId = await idCompleter.future;
+
+        // Put the conversation entry to the conversations page.
+        statusCompleter = new Completer<Status>();
+        _conversationsPage.put(
+          conversationId,
+          encodeLedgerValue(<String, dynamic>{
+            'participants': participants,
+          }),
+          statusCompleter.complete,
+        );
+
+        status = await statusCompleter.future;
+        if (status != Status.ok) {
+          _log('Page::Put() returned an error status: $status');
+          callback(ChatStatus.ledgerOperationError, null);
+          return;
+        }
+
+        // Return the created conversation.
+        Conversation conversation = new Conversation()
+          ..conversationId = conversationId
+          ..participants = participants;
+
+        callback(ChatStatus.ok, conversation);
+      } finally {
+        newConversationPage.ctrl.close();
+      }
+    } catch (e, stackTrace) {
+      _log('ERROR: Sending ChatStatus.unknownError caused by: $e.');
+      _log(stackTrace.toString());
+      callback(ChatStatus.unknownError, null);
+    }
+  }
+
+  @override
   Future<Null> getConversations(
+    String messageQueueToken,
     void callback(ChatStatus chatStatus, List<Conversation> conversations),
   ) async {
     try {
@@ -379,10 +413,29 @@ class ChatContentProviderImpl extends ChatContentProvider {
       PageSnapshotProxy snapshot = new PageSnapshotProxy();
 
       try {
+        // Here, we create a [NewconversationWatcher] instance in case the
+        // client gave us a message queue token.
+        NewConversationWatcher newConversationWatcher;
+        if (messageQueueToken != null) {
+          MessageSenderProxy messageSender = new MessageSenderProxy();
+          _componentContext.getMessageSender(
+            messageQueueToken,
+            messageSender.ctrl.request(),
+          );
+
+          newConversationWatcher = new NewConversationWatcher(
+            messageSender: messageSender,
+          );
+
+          _pageWatchers[messageQueueToken]?.close();
+          _pageWatchers[messageQueueToken] = newConversationWatcher;
+        }
+
         Completer<Status> statusCompleter = new Completer<Status>();
         _conversationsPage.getSnapshot(
           snapshot.ctrl.request(),
           null,
+          newConversationWatcher?.handle,
           statusCompleter.complete,
         );
 
@@ -462,8 +515,8 @@ class ChatContentProviderImpl extends ChatContentProvider {
           return;
         }
 
-        // Here, we create a [NewMessageWatcher] instance in case the client gave us
-        // a message queue token.
+        // Here, we create a [NewMessageWatcher] instance in case the client
+        // gave us a message queue token.
         NewMessageWatcher newMessageWatcher;
         if (messageQueueToken != null) {
           MessageSenderProxy messageSender = new MessageSenderProxy();
@@ -484,6 +537,7 @@ class ChatContentProviderImpl extends ChatContentProvider {
         statusCompleter = new Completer<Status>();
         conversationPage.getSnapshot(
           snapshot.ctrl.request(),
+          null,
           newMessageWatcher?.handle,
           statusCompleter.complete,
         );
@@ -562,6 +616,7 @@ class ChatContentProviderImpl extends ChatContentProvider {
         statusCompleter = new Completer<Status>();
         conversationPage.getSnapshot(
           snapshot.ctrl.request(),
+          null,
           null,
           statusCompleter.complete,
         );
@@ -727,6 +782,7 @@ class ChatContentProviderImpl extends ChatContentProvider {
     _conversationsPage.getSnapshot(
       snapshot.ctrl.request(),
       null,
+      null,
       (Status status) {
         if (status != Status.ok) {
           throw new Exception(
@@ -776,23 +832,4 @@ class ChatContentProviderImpl extends ChatContentProvider {
       ..type = decodedValue['type']
       ..jsonPayload = decodedValue['json_payload'];
   }
-
-  String _emailFromName(String name) =>
-      '${name.toLowerCase().split(' ').join('.')}@example.com';
-
-  String _randomEmail() => _emailFromName(new Fixtures().name());
-
-  /// Temporary method for creating a random message.
-  Message _randomMessage() {
-    return new Message.init(
-      _randomId(),
-      new DateTime.now().millisecondsSinceEpoch,
-      _emailFromName(new Fixtures().name()),
-      'text',
-      new Fixtures().lorem.createSentence(),
-    );
-  }
-
-  /// Temporary method for creating a random id.
-  List<int> _randomId() => generateRandomId(_kKeyLengthInBytes);
 }

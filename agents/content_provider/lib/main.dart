@@ -52,9 +52,6 @@ class ChatContentProviderAgent extends Agent {
     // Initialize the content provider.
     await _contentProviderImpl.initialize(_componentContext);
 
-    // TODO(youngseokyoon): Take this code out when the testing is done.
-    await _contentProviderImpl.addTestData();
-
     // Register the ChatContentProvider service to the outgoingServices
     // service provider.
     _outgoingServicesImpl.addServiceForName(

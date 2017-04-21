@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
+import 'package:lib.widgets/hacks.dart' as hacks;
 import 'package:lib.widgets/model.dart';
 
 import '../models.dart';
@@ -23,17 +24,53 @@ class ChatConversationListScreen extends StatelessWidget {
           builder: (
             BuildContext context,
             Widget child,
-            ChatConversationListModuleModel conversationListModel,
+            ChatConversationListModuleModel model,
           ) {
-            return new ChatConversationList(
-              conversations: conversationListModel.conversations == null
-                  ? <Conversation>[]
-                  : conversationListModel.conversations,
-              onSelectConversation: (Conversation c) =>
-                  conversationListModel.setConversationId(c.conversationId),
-              selectedId: conversationListModel.conversationId,
-            );
+            List<Widget> stackChildren = <Widget>[
+              new ChatConversationList(
+                conversations: model.conversations == null
+                    ? <Conversation>[]
+                    : model.conversations,
+                onNewConversation: model.showNewConversationForm,
+                onSelectConversation: (Conversation c) =>
+                    model.setConversationId(c.conversationId),
+                selectedId: model.conversationId,
+              ),
+            ];
+
+            if (model.shouldShowNewConversationForm) {
+              stackChildren.addAll(<Widget>[
+                new GestureDetector(
+                  onTapUp: (_) => model.hideNewConversationForm(),
+                  child: new Container(
+                    color: Colors.black.withAlpha(180),
+                  ),
+                ),
+                _buildNewConversationForm(model),
+              ]);
+            }
+
+            return new Stack(children: stackChildren);
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNewConversationForm(ChatConversationListModuleModel model) {
+    return new Center(
+      child: new Material(
+        child: new Container(
+          child: new hacks.RawKeyboardTextField(
+            onSubmitted: (String text) {
+              // TODO(youngseokyoon): make the form prettier.
+              // https://fuchsia.atlassian.net/browse/SO-369
+              List<String> participants =
+                  text.split(',').map((String s) => s.trim()).toList();
+              model.hideNewConversationForm();
+              model.newConversation(participants);
+            },
+          ),
         ),
       ),
     );

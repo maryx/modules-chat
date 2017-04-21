@@ -164,7 +164,7 @@ class ChatConversationModuleModel extends ModuleModel {
   /// Refer to the `chat_content_provider.fidl` file for the expected message
   /// format coming from the content provider.
   void _handleNewMessage(String message) {
-    _log('handleNewMessage call with message:$message');
+    _log('handleNewMessage call with message: $message');
     try {
       Map<String, dynamic> decoded = JSON.decode(message);
       List<int> conversationId = decoded['conversation_id'];
@@ -200,7 +200,6 @@ class ChatConversationModuleModel extends ModuleModel {
           'message queue: $e');
     } finally {
       // Register the handler again to process further messages.
-      _log('calling _messageQueue.receive again');
       _messageQueue.receive(_handleNewMessage);
     }
   }

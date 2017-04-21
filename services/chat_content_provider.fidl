@@ -7,11 +7,12 @@ module chat_content_provider;
 // Status codes for all |ChatContentProvider| operations.
 enum ChatStatus {
   OK = 0,
-  ID_NOT_FOUND,
-  LEDGER_NOT_INITIALIZED,
-  LEDGER_OPERATION_ERROR,
   AUTHENTICATION_ERROR,
   DECODING_ERROR,
+  ID_NOT_FOUND,
+  INVALID_EMAIL_ADDRESS,
+  LEDGER_NOT_INITIALIZED,
+  LEDGER_OPERATION_ERROR,
   UNKNOWN_ERROR = -1,
 };
 
@@ -24,7 +25,7 @@ struct Conversation {
   array<uint8> conversation_id;
 
   // List of the email addresses of the users participating in this conversation
-  // including the current user.
+  // excluding the current user.
   array<string> participants;
 };
 
@@ -51,10 +52,28 @@ struct Message {
 
 [ServiceName="chat_content_provider.ChatContentProvider"]
 interface ChatContentProvider {
+  // Creates a new conversation with the given |participants|, which is a list
+  // of email addresses of all participants in the group.
+  NewConversation(array<string> participants)
+      => (ChatStatus status, Conversation? conversation);
+
   // Returns the list of metadata of all existing conversations.
   // To obtain the conversation history, use the |GetMessageHistory| method with
   // the obtained conversation id.
-  GetConversations() => (ChatStatus status, array<Conversation> conversations);
+  // When the |message_queue_token| value is provided, the client will be
+  // notified with any new conversations added after the initial list of
+  // conversations is sent.
+  //
+  // The message sent from the content provider will be a JSON string formatted
+  // as following:
+  //
+  //     {
+  //       "conversation_id": <conversation_id>,
+  //       "participants":    <list of participant emails>
+  //     }
+  //
+  GetConversations(string? message_queue_token)
+      => (ChatStatus status, array<Conversation> conversations);
 
   // Gets the list of all |Message|s in the specified conversation.
   // When the |message_queue_token| value is provided, the client will be
@@ -63,7 +82,10 @@ interface ChatContentProvider {
   // The message sent from the content provider will be a JSON string formatted
   // as following:
   //
-  //     {"conversation_id":<conversation_id>, "message_id":<message_id>}
+  //     {
+  //       "conversation_id": <conversation_id>,
+  //       "message_id":      <message_id>
+  //     }
   //
   // The client should then make a subsequent |GetMessage| call to retrieve the
   // actual message content.
