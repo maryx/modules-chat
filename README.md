@@ -193,29 +193,29 @@ CLI or the Firebase Console. From here you can start working with records.
 ## Records
 View the user's record.
 
-    ```shell
-    curl -Li \
-      -H "accept: application/json" \
-      $FIREBASE_URL/users/$FIREBASE_USER_ID.json?auth=$FIREBASE_AUTH_TOKEN
-    ```
+```shell
+curl -Li \
+  -H "accept: application/json" \
+  $FIREBASE_URL/users/$FIREBASE_USER_ID.json?auth=$FIREBASE_AUTH_TOKEN
+```
 
 Update the record.
 
-    ```shell
-    curl -Li -X PUT \
-      -H "accept: application/json" \
-      -H "content-type: application/json" \
-      -d "{ \"uid\": \"${FIREBASE_USER_ID}\", \"username\": \"John Doe\" }" \
-      $FIREBASE_URL/users/$FIREBASE_USER_ID.json?auth=$FIREBASE_AUTH_TOKEN
-    ```
+```shell
+curl -Li -X PUT \
+  -H "accept: application/json" \
+  -H "content-type: application/json" \
+  -d "{ \"uid\": \"${FIREBASE_USER_ID}\", \"username\": \"John Doe\" }" \
+  $FIREBASE_URL/users/$FIREBASE_USER_ID.json?auth=$FIREBASE_AUTH_TOKEN
+```
 
 Stream updates.
 
-    ```shell
-    curl -Li \
-      -H "accept: text/event-stream" \
-      https://jxson-testing.firebaseio.com/users/$FIREBASE_USER_ID.json?auth=$FIREBASE_AUTH_TOKEN
-    ```
+```shell
+curl -Li \
+  -H "accept: text/event-stream" \
+  $FIREBASE_URL/users/$FIREBASE_USER_ID.json?auth=$FIREBASE_AUTH_TOKEN
+```
 
 
 [flutter]: https://flutter.io/
