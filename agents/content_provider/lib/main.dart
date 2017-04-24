@@ -14,6 +14,7 @@ import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart';
 import 'package:lib.fidl.dart/bindings.dart';
 
 import 'src/chat_content_provider_impl.dart';
+import 'src/firebase_chat_message_transporter.dart';
 
 final ApplicationContext _context = new ApplicationContext.fromStartupInfo();
 ChatContentProviderAgent _agent;
@@ -30,8 +31,8 @@ class ChatContentProviderAgent extends Agent {
   final ServiceProviderImpl _outgoingServicesImpl = new ServiceProviderImpl();
   final List<ServiceProviderBinding> _outgoingServicesBindings =
       <ServiceProviderBinding>[];
-  final ChatContentProviderImpl _contentProviderImpl =
-      new ChatContentProviderImpl();
+
+  ChatContentProviderImpl _contentProviderImpl;
 
   /// Bind an [InterfaceRequest] for an [Agent] interface to this object.
   void bind(InterfaceRequest<Agent> request) {
@@ -50,7 +51,11 @@ class ChatContentProviderAgent extends Agent {
     agentContext.getComponentContext(_componentContext.ctrl.request());
 
     // Initialize the content provider.
-    await _contentProviderImpl.initialize(_componentContext);
+    _contentProviderImpl = new ChatContentProviderImpl(
+      componentContext: _componentContext,
+      chatMessageTransporter: new FirebaseChatMessageTransporter(),
+    );
+    await _contentProviderImpl.initialize();
 
     // Register the ChatContentProvider service to the outgoingServices
     // service provider.

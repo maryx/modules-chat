@@ -19,6 +19,7 @@ dart_app("chat_content_provider") {
     "//apps/modules/common/packages/models",
     "//lib/fidl/dart",
     "//third_party/dart-pkg/pub/collection",
+    "//third_party/dart-pkg/pub/eventsource",
     "//third_party/dart-pkg/pub/meta",
     "//third_party/dart-pkg/pub/quiver",
     "//third_party/dart-pkg/pub/uuid",

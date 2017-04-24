@@ -4,7 +4,6 @@
 
 import 'dart:async';
 import 'dart:collection';
-import 'dart:convert' show JSON;
 import 'dart:typed_data';
 
 import 'package:apps.ledger.services.public/ledger.fidl.dart';
@@ -12,13 +11,13 @@ import 'package:apps.modular.services.component/component_context.fidl.dart';
 import 'package:apps.modular.services.component/message_queue.fidl.dart';
 import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart';
 import 'package:collection/collection.dart';
-import 'package:config/config.dart';
-import 'package:http/http.dart' as http;
 import 'package:lib.fidl.dart/bindings.dart' show InterfaceRequest;
 import 'package:lib.fidl.dart/core.dart' show Vmo;
+import 'package:meta/meta.dart';
 import 'package:quiver/core.dart' as quiver;
 
 import 'base_page_watcher.dart';
+import 'chat_message_transporter.dart';
 import 'ledger_utils.dart';
 import 'new_conversation_watcher.dart';
 import 'new_message_watcher.dart';
@@ -52,20 +51,11 @@ class ChatContentProviderImpl extends ChatContentProvider {
   final List<ChatContentProviderBinding> _bindings =
       <ChatContentProviderBinding>[];
 
-  /// Config object obtained from the `/system/data/modules/config.json` file.
-  Config _config;
-
-  /// Firebase User ID of the current user.
-  String _firebaseUid;
-
-  /// The primary email address of this user.
-  String _email;
-
-  /// Firebase auth token obtained from the identity toolkit api.
-  String _firebaseAuthToken;
-
   /// [ComponentContext] from which we obtain the [Ledger] and [MessageSender]s.
-  ComponentContext _componentContext;
+  final ComponentContext componentContext;
+
+  /// [ChatMessageTransporter] for sending / receiveing messages between users.
+  final ChatMessageTransporter chatMessageTransporter;
 
   /// [Ledger] instance given to the content provider.
   LedgerProxy _ledger;
@@ -77,7 +67,6 @@ class ChatContentProviderImpl extends ChatContentProvider {
 
   /// Reserved [Page]s in the ledger.
   final Map<String, PageProxy> _reservedPages = <String, PageProxy>{};
-  Page get _conversationsPage => _reservedPages['conversations'];
 
   /// Local cache of the [Conversation] objects.
   ///
@@ -85,8 +74,7 @@ class ChatContentProviderImpl extends ChatContentProvider {
   /// the [List<int>] ids can be used as keys.
   final Map<List<int>, Conversation> _conversationCache =
       new HashMap<List<int>, Conversation>(
-    equals: (List<int> key1, List<int> key2) =>
-        const ListEquality<int>().equals(key1, key2),
+    equals: const ListEquality<int>().equals,
     hashCode: (List<int> key) => quiver.hashObjects(key),
     isValidKey: (dynamic key) => key is List<int>,
   );
@@ -94,19 +82,27 @@ class ChatContentProviderImpl extends ChatContentProvider {
   /// Indicates whether the [Ledger] initialization is successfully done.
   final Completer<Null> _ledgerReady = new Completer<Null>();
 
-  /// Indicates whether the Firebase DB initialization is successfully done.
-  final Completer<Null> _firebaseReady = new Completer<Null>();
+  /// Creates a new [ChatContentProviderImpl] instance.
+  ChatContentProviderImpl({
+    @required this.componentContext,
+    @required this.chatMessageTransporter,
+  }) {
+    assert(componentContext != null);
+    assert(chatMessageTransporter != null);
+
+    chatMessageTransporter.onReceived = _handleMessage;
+  }
+
+  Page get _conversationsPage => _reservedPages['conversations'];
 
   /// Runs the startup logic for the chat content provider.
-  Future<Null> initialize(ComponentContext componentContext) async {
-    _componentContext = componentContext;
-
+  Future<Null> initialize() async {
     try {
       /// These two operations don't depend on each other, so just run them in
       /// parallel.
       await Future.wait(<Future<Null>>[
         _initializeLedger(),
-        _signInToFirebase(),
+        chatMessageTransporter.initialize(),
       ]);
     } catch (e, stackTrace) {
       _log('Failed to initialize: $e');
@@ -123,7 +119,7 @@ class ChatContentProviderImpl extends ChatContentProvider {
     try {
       // Obtain the Ledger instance for this agent.
       Completer<Status> statusCompleter = new Completer<Status>();
-      _componentContext.getLedger(
+      componentContext.getLedger(
         _ledger.ctrl.request(),
         statusCompleter.complete,
       );
@@ -159,144 +155,11 @@ class ChatContentProviderImpl extends ChatContentProvider {
     }
   }
 
-  /// Sign in to the firebase DB using the given google auth credentials.
-  Future<Null> _signInToFirebase() async {
-    try {
-      // First, see if the required config values are all provided.
-      Config config = await Config.read('/system/data/modules/config.json');
-      List<String> keys = <String>[
-        'chat_firebase_api_key',
-        'chat_firebase_project_id',
-        'id_token',
-        'oauth_token',
-      ];
-
-      config.validate(keys);
-      _config = config;
-
-      // Make a call to identitytoolkit API to register the current user to the
-      // Firebase project, and obtain the Firebase UID for this user.
-      Uri identityToolkitUrl = new Uri.https(
-        'www.googleapis.com',
-        '/identitytoolkit/v3/relyingparty/verifyAssertion',
-        <String, String>{
-          'key': _config.get('chat_firebase_api_key'),
-        },
-      );
-
-      http.Response identityToolkitResponse = await http.post(
-        identityToolkitUrl,
-        headers: <String, String>{
-          'accept': 'application/json',
-          'content-type': 'application/json',
-        },
-        body: JSON.encode(<String, dynamic>{
-          'postBody':
-              'id_token=${_config.get('id_token')}&providerId=google.com',
-          'requestUri': 'http://localhost',
-          'returnIdpCredential': true,
-          'returnSecureToken': true,
-        }),
-      );
-
-      if (identityToolkitResponse.statusCode != 200 ||
-          (identityToolkitResponse.body?.isEmpty ?? true)) {
-        throw new Exception(
-            'identityToolkit#verifyAssertion call was unsuccessful.\n'
-            'status code: ${identityToolkitResponse.statusCode}\n'
-            'body: ${identityToolkitResponse.body}');
-      }
-
-      // Parse the response.
-      String responseBody = identityToolkitResponse.body;
-      dynamic responseJson;
-      try {
-        responseJson = JSON.decode(responseBody);
-      } catch (e) {
-        throw new Exception(
-            'Error parsing JSON response from identityToolkit#verifyAssertion '
-            'response.\n'
-            'body: $responseBody');
-      }
-
-      _firebaseUid = responseJson['localId'];
-      _email = _normalizeEmail(responseJson['email']);
-      _firebaseAuthToken = responseJson['idToken'];
-
-      if (_firebaseUid == null ||
-          _email == null ||
-          _firebaseAuthToken == null) {
-        throw new Exception(
-            'identityToolkit#verifyAssertion response is missing one of the '
-            'expected parameters (localId, email, idToken).\n'
-            'body: $responseBody');
-      }
-
-      _firebaseReady.complete();
-    } catch (e) {
-      _firebaseReady.completeError(e);
-      rethrow;
-    }
-  }
-
-  /// Make a GET request to the firebase DB.
-  // ignore: unused_element
-  Future<http.Response> _firebaseDBGet(String path) async {
-    await _firebaseReady.future;
-
-    Uri url = _getFirebaseUrl(path);
-    return await http.get(url);
-  }
-
-  /// Make a PUT request to the firebase DB.
-  // ignore: unused_element
-  Future<http.Response> _firebaseDBPut(String path, dynamic data) async {
-    await _firebaseReady.future;
-
-    Uri url = _getFirebaseUrl(path);
-    return await http.put(
-      url,
-      headers: <String, String>{
-        'content-type': 'application/json',
-      },
-      body: JSON.encode(data),
-    );
-  }
-
-  /// Returns the firebase DB url with the given data path.
-  Uri _getFirebaseUrl(String path) {
-    return new Uri.https(
-      '${_config.get('chat_firebase_project_id')}.firebaseio.com',
-      '$path.json',
-      <String, String>{
-        'auth': _firebaseAuthToken,
-      },
-    );
-  }
-
   /// Returns true if the given [email] address is not a valid one.
   bool _isEmailNotValid(String email) {
     // TODO(youngseokyoon): implement this properly.
     // https://fuchsia.atlassian.net/browse/SO-370
     return false;
-  }
-
-  /// Normalize the email address.
-  String _normalizeEmail(String email) {
-    int atSignIndex = email?.indexOf('@') ?? -1;
-    if (atSignIndex == -1) {
-      return email;
-    }
-
-    String lowerCaseEmail = email.toLowerCase();
-    String username = lowerCaseEmail.substring(0, atSignIndex);
-    String domain = lowerCaseEmail.substring(atSignIndex + 1);
-
-    if (domain == 'gmail.com') {
-      return '${username.replaceAll('.', '')}@$domain';
-    }
-
-    return lowerCaseEmail;
   }
 
   /// Bind this instance with the given request, and keep the binding object
@@ -385,6 +248,8 @@ class ChatContentProviderImpl extends ChatContentProvider {
           ..conversationId = conversationId
           ..participants = participants;
 
+        _conversationCache[conversationId] = conversation;
+
         callback(ChatStatus.ok, conversation);
       } finally {
         newConversationPage.ctrl.close();
@@ -418,7 +283,7 @@ class ChatContentProviderImpl extends ChatContentProvider {
         NewConversationWatcher newConversationWatcher;
         if (messageQueueToken != null) {
           MessageSenderProxy messageSender = new MessageSenderProxy();
-          _componentContext.getMessageSender(
+          componentContext.getMessageSender(
             messageQueueToken,
             messageSender.ctrl.request(),
           );
@@ -520,7 +385,7 @@ class ChatContentProviderImpl extends ChatContentProvider {
         NewMessageWatcher newMessageWatcher;
         if (messageQueueToken != null) {
           MessageSenderProxy messageSender = new MessageSenderProxy();
-          _componentContext.getMessageSender(
+          componentContext.getMessageSender(
             messageQueueToken,
             messageSender.ctrl.request(),
           );
@@ -708,7 +573,7 @@ class ChatContentProviderImpl extends ChatContentProvider {
         'id': messageId,
         'timestamp': localTimestamp,
         'sender': 'me',
-        'type': 'text',
+        'type': type,
         'json_payload': jsonPayload,
       };
 
@@ -748,9 +613,25 @@ class ChatContentProviderImpl extends ChatContentProvider {
         conversationPage.ctrl.close();
       }
 
-      // TODO(youngseokyoon): Send the message to Firebase DB.
-      // ignore: unused_local_variable
       Conversation conversation = await _getConversation(conversationId);
+
+      // Send the message via the chat message transporter.
+      // In case of an error, depending on the type of exception we get, we
+      // return different status codes to the client.
+      try {
+        await chatMessageTransporter.sendMessage(
+          conversation: conversation,
+          messageId: messageId,
+          type: type,
+          jsonPayload: jsonPayload,
+        );
+      } on ChatAuthenticationException {
+        callback(ChatStatus.authenticationError, const <int>[]);
+      } on ChatAuthorizationException {
+        callback(ChatStatus.permissionError, const <int>[]);
+      } on ChatNetworkException {
+        callback(ChatStatus.networkError, const <int>[]);
+      }
 
       callback(ChatStatus.ok, messageId);
     } catch (e, stackTrace) {
@@ -832,4 +713,85 @@ class ChatContentProviderImpl extends ChatContentProvider {
       ..type = decodedValue['type']
       ..jsonPayload = decodedValue['json_payload'];
   }
+
+  /// Handles a newly received message from another user.
+  Future<Null> _handleMessage(
+    Conversation conversation,
+    Message message,
+  ) async {
+    try {
+      await _ledgerReady.future;
+
+      Conversation cachedConversation =
+          await _getConversation(conversation.conversationId);
+
+      PageProxy conversationPage = new PageProxy();
+      try {
+        // Request a new page from Ledger.
+        Completer<Status> statusCompleter = new Completer<Status>();
+        _ledger.getPage(
+          conversation.conversationId,
+          conversationPage.ctrl.request(),
+          statusCompleter.complete,
+        );
+
+        Status status = await statusCompleter.future;
+        if (status != Status.ok) {
+          _log('Ledger::GetPage() returned an error status: $status');
+          return;
+        }
+
+        if (cachedConversation == null) {
+          // Put the conversation entry to the conversations page.
+          statusCompleter = new Completer<Status>();
+          _conversationsPage.put(
+            conversation.conversationId,
+            encodeLedgerValue(<String, dynamic>{
+              'participants': conversation.participants,
+            }),
+            statusCompleter.complete,
+          );
+
+          status = await statusCompleter.future;
+          if (status != Status.ok) {
+            _log('Page::Put() returned an error status: $status');
+          }
+
+          _conversationCache[conversation.conversationId] = conversation;
+        }
+
+        Map<String, dynamic> localMessageObject = _messageToJson(message);
+
+        // Put the message object to the ledger.
+        statusCompleter = new Completer<Status>();
+        conversationPage.put(
+          message.messageId,
+          encodeLedgerValue(localMessageObject),
+          statusCompleter.complete,
+        );
+
+        status = await statusCompleter.future;
+        if (status != Status.ok) {
+          _log('Page::Put() returned an error status: $status');
+          return;
+        }
+      } finally {
+        conversationPage.ctrl.close();
+      }
+    } catch (e, stackTrace) {
+      _log('An error occurred while processing an incoming message.');
+      _log('$e');
+      _log('$stackTrace');
+    }
+  }
+
+  /// Returns the JSON encodable [Map] representation of the given message,
+  /// which can be encoded and stored in [Ledger].
+  Map<String, dynamic> _messageToJson(Message message) => <String, dynamic>{
+        'id': message.messageId,
+        'timestamp': message.timestamp,
+        'sender': message.sender,
+        'type': message.type,
+        'json_payload': message.jsonPayload,
+      };
 }
