@@ -96,8 +96,6 @@ class ChatContentProviderAgent extends Agent {
   /// Implements [Agent] interface.
   @override
   void stop(void callback()) {
-    _log('Stop called');
-
     _outgoingServicesBindings
         .forEach((ServiceProviderBinding binding) => binding.close());
 
