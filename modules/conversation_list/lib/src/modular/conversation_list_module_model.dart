@@ -135,19 +135,12 @@ class ChatConversationListModuleModel extends ModuleModel {
     moduleContext.startModuleInShell(
       'chat_conversation',
       _kChatConversationModuleUrl,
-      _duplicateLink(),
+      null, // Pass on our default link to the child.
       null,
       null,
       moduleControllerPair.passRequest(),
       'h', // for 'hierarchical' view type.
     );
-  }
-
-  /// Obtains a duplicated [InterfaceHandle] for the given [Link] object.
-  InterfaceHandle<Link> _duplicateLink() {
-    InterfacePair<Link> linkPair = new InterfacePair<Link>();
-    link.dup(linkPair.passRequest());
-    return linkPair.passHandle();
   }
 
   /// Fetches the conversation list from the content provider. Also provide our
