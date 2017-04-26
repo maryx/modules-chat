@@ -54,6 +54,7 @@ class ChatGroupAvatar extends StatelessWidget {
         width: size,
         height: size,
         child: new Stack(
+          fit: StackFit.passthrough,
           children: <Widget>[
             new Positioned(
               right: 0.0,

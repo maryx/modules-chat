@@ -44,6 +44,7 @@ class ChatConversationList extends StatelessWidget {
   Widget build(BuildContext context) {
     ThemeData theme = Theme.of(context);
     return new Stack(
+      fit: StackFit.passthrough,
       children: <Widget>[
         new Column(
           mainAxisSize: MainAxisSize.max,
