@@ -24,4 +24,6 @@ dart_app("chat_content_provider") {
     "//third_party/dart-pkg/pub/quiver",
     "//third_party/dart-pkg/pub/uuid",
   ]
+
+  analysis_options = "//apps/modules/common/.analysis_options"
 }

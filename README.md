@@ -106,6 +106,38 @@ before running the chat modules correctly.
       `make auth` tool will preserve all the manually added key-values in the
       `config.json`.
 
+# Running Tests
+
+## Chat Agent Tests
+
+To run the chat agent tests, build fuchsia with `--modules boot_test_modular`
+option and boot into fuchsia using a target device or a QEMU instance.
+
+```bash
+$ fset --modules boot_test_modular
+$ fbuild
+$ frun <options> # when using QEMU.
+```
+
+Once the fuchsia device is booted, run the following command from the host.
+
+```bash
+$ $FUCHSIA_ROOT/apps/test_runner/src/run_test \
+  --test_file=$FUCHSIA_ROOT/apps/modules/chat/tests/chat_tests.json
+```
+
+When the test passes, the resulting output should look like this:
+```
+Running chat_content_provider_test ..
+./loglistener: listening on [::]33337 for device same-undo-rail-gains
+.. pass
+```
+
+In case something fails, the script will output `fail`, and also print out the
+fuchsia console messages with more detailed error logs.
+
+Fore more details, refer to the [test_runner documentation][test-runner-doc].
+
 # Firebase DB Authentication using REST APIs
 
 (*NOTE: You can ignore this section if you're only interested in running the
@@ -232,3 +264,4 @@ curl -Li \
 [auth-instructions]: https://fuchsia.googlesource.com/modules/common/+/master/README.md#Configure
 [identity-toolkit]: https://developers.google.com/identity/toolkit/web/reference/relyingparty/verifyAssertion
 [identity-toolkit-response]: https://developers.google.com/identity/toolkit/web/reference/relyingparty/verifyAssertion#response
+[test-runner-doc]: https://fuchsia.googlesource.com/test_runner/+/master/README.md

@@ -1,0 +1,13 @@
+{
+  "tests": [
+    {
+      "name": "chat_content_provider_test",
+      "exec": "device_runner --ledger_repository_for_testing --device_shell=dev_device_shell --user_shell=dev_user_shell --story_shell=dummy_story_shell --user_shell_args=--root_module=/system/apps/chat_tests/chat_content_provider_test.dartx",
+      "copy": {
+        "/system/apps/chat_tests": [
+          "chat_content_provider_test.dartx"
+        ]
+      }
+    }
+  ]
+}

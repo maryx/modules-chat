@@ -534,16 +534,20 @@ class ChatContentProviderImpl extends ChatContentProvider {
   // TODO(youngseokyoon): implement this more efficiently by only fetching the
   // last message from the ledger.
   @override
-  void getLastMessage(
+  Future<Null> getLastMessage(
     List<int> conversationId,
     void callback(ChatStatus chatStatus, Message message),
-  ) {
-    getMessages(conversationId, null, (ChatStatus cs, List<Message> messages) {
-      callback(
-        cs,
-        messages.isEmpty ? null : messages.last,
-      );
-    });
+  ) async {
+    await getMessages(
+      conversationId,
+      null,
+      (ChatStatus cs, List<Message> messages) {
+        callback(
+          cs,
+          messages.isEmpty ? null : messages.last,
+        );
+      },
+    );
   }
 
   @override
