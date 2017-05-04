@@ -60,7 +60,7 @@ class _MessageInputState extends State<MessageInput> {
           return new Material(
             color: _controller.text.isEmpty ? Colors.grey[300] : primaryColor,
             type: MaterialType.circle,
-            elevation: _controller.text.isEmpty ? 2 : 4,
+            elevation: _controller.text.isEmpty ? 2.0 : 4.0,
             child: new Container(
               width: 40.0,
               height: 40.0,
