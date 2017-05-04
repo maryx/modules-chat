@@ -5,16 +5,14 @@
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 
+import '../models.dart';
 import 'chat_section.dart';
 import 'message_input.dart';
 
 /// UI Widget that represents a single chat thread
 class ChatConversation extends StatefulWidget {
-  /// List of [ChatSection]s to render
-  ///
-  /// TODO(dayang): Pass in the data model representing a chat thread
-  /// once that is specified
-  final List<ChatSection> chatSections;
+  /// List of [Section]s to render
+  final List<Section> sections;
 
   /// Title of thread
   final String title;
@@ -30,13 +28,13 @@ class ChatConversation extends StatefulWidget {
   /// Constructor
   ChatConversation({
     Key key,
-    @required this.chatSections,
+    @required this.sections,
     this.title,
     this.onSubmitMessage,
     this.scrollController,
   })
       : super(key: key) {
-    assert(this.chatSections != null);
+    assert(this.sections != null);
   }
 
   @override
@@ -73,12 +71,15 @@ class _ChatConversationState extends State<ChatConversation> {
             children: <Widget>[
               new Flexible(
                 child: new Container(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
                   child: new ListView(
                     controller: effectiveScrollController,
                     reverse: true,
                     shrinkWrap: true,
-                    children: widget.chatSections.reversed.toList(),
+                    children: widget.sections.reversed
+                        .map((Section section) =>
+                            new ChatSection(section: section))
+                        .toList(),
                   ),
                 ),
               ),

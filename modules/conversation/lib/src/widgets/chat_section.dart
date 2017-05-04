@@ -3,11 +3,12 @@
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:lib.widgets/widgets.dart';
 import 'package:meta/meta.dart';
-import 'package:models/user.dart';
 import 'package:util/time_util.dart';
 
+import '../models.dart';
 import 'chat_bubble.dart';
 
 /// UI Widget that represents a consecutive sequence of [ChatBubble]s by the
@@ -19,68 +20,40 @@ import 'chat_bubble.dart';
 /// The orientation for the children [ChatBubble]s should be the same as the
 /// [ChatSection]
 class ChatSection extends StatelessWidget {
-  /// User of the given chat section
-  final User user;
+  /// Chat [Section] model
+  final Section section;
 
-  /// List of chat bubbles to show inside the section
-  final List<ChatBubble> chatBubbles;
-
-  /// Orientation (left/right) of the chat section
-  final ChatBubbleOrientation orientation;
-
-  /// Timestamp for chat section
-  final DateTime timestamp;
+  /// [DateFormat] to be used in the date header.
+  static final DateFormat _kDateHeaderFormat = new DateFormat.yMMMMd();
 
   /// Constructor
   ChatSection({
     Key key,
-    @required this.user,
-    @required this.chatBubbles,
-    this.timestamp,
-    ChatBubbleOrientation orientation,
+    @required this.section,
   })
-      : orientation = orientation ?? ChatBubbleOrientation.left,
-        super(key: key) {
-    assert(user != null);
-    assert(chatBubbles != null);
-    chatBubbles.forEach((ChatBubble bubble) {
-      assert(bubble.orientation == this.orientation);
-    });
+      : super(key: key) {
+    assert(section != null);
   }
 
   @override
   Widget build(BuildContext context) {
-    Widget alphatar = new Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4.0),
-      child: new Alphatar.fromNameAndUrl(
-        name: user.name,
-        avatarUrl: user.picture,
-      ),
-    );
-    Widget chatColumn = new Expanded(
-      child: new Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: orientation == ChatBubbleOrientation.left
-            ? CrossAxisAlignment.start
-            : CrossAxisAlignment.end,
-        children: chatBubbles,
-      ),
-    );
+    ThemeData theme = Theme.of(context);
+
+    Widget chatColumn = _buildBubbles(theme, section.messages);
 
     // Order avatar & chat bubbles depending on orientation
     List<Widget> rowChildren;
-    if (orientation == ChatBubbleOrientation.left) {
-      rowChildren = <Widget>[
-        alphatar,
-        chatColumn,
-      ];
+    if (section.isMyMessage) {
+      rowChildren = <Widget>[chatColumn];
     } else {
-      rowChildren = <Widget>[
-        chatColumn,
-        alphatar,
-      ];
+      Widget alphatar = new Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4.0),
+        child: new Alphatar.fromName(name: section.sender),
+      );
+      rowChildren = <Widget>[alphatar, chatColumn];
     }
-    Widget sectionContainer = new Container(
+
+    Widget result = new Container(
       margin: const EdgeInsets.only(bottom: 4.0),
       child: new Row(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -88,21 +61,24 @@ class ChatSection extends StatelessWidget {
       ),
     );
 
-    // Add timestamp if it is given
-    if (timestamp != null) {
-      return new Column(
+    // Add timestamp if it should be displayed.
+    if (section.shouldDisplayLastMessageTime) {
+      result = new Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: orientation == ChatBubbleOrientation.left
-            ? CrossAxisAlignment.start
-            : CrossAxisAlignment.end,
+        crossAxisAlignment: section.isMyMessage
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: <Widget>[
-          sectionContainer,
+          result,
           new Container(
-            margin: orientation == ChatBubbleOrientation.left
-                ? const EdgeInsets.only(left: 50.0)
-                : const EdgeInsets.only(right: 50.0),
+            margin: section.isMyMessage
+                ? EdgeInsets.zero
+                : const EdgeInsets.only(left: 50.0),
             child: new Text(
-              TimeUtil.relativeDisplayDate(date: timestamp),
+              TimeUtil.relativeDisplayDate(
+                date: section.lastMessageTime,
+                alwaysIncludeTime: true,
+              ),
               style: new TextStyle(
                 fontSize: 12.0,
                 color: Colors.grey[500],
@@ -111,8 +87,68 @@ class ChatSection extends StatelessWidget {
           ),
         ],
       );
-    } else {
-      return sectionContainer;
     }
+
+    // Add date header if needed.
+    if (section.shouldDisplayDateHeader) {
+      result = new Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          _buildDateHeader(theme),
+          result,
+        ],
+      );
+    }
+
+    return result;
+  }
+
+  Widget _buildDateHeader(ThemeData theme) {
+    String dateText =
+        _kDateHeaderFormat.format(section.firstMessageTime).toUpperCase();
+
+    return new Container(
+      padding: const EdgeInsets.only(top: 32.0, bottom: 16.0),
+      child: new Text(
+        '—  $dateText  —',
+        style: new TextStyle(
+          fontSize: 12.0,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 2.0,
+          color: Colors.grey[500],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBubbles(ThemeData theme, List<Message> messages) {
+    Color backgroundColor =
+        section.isMyMessage ? Colors.grey[300] : theme.textSelectionHandleColor;
+
+    ChatBubbleOrientation orientation = section.isMyMessage
+        ? ChatBubbleOrientation.right
+        : ChatBubbleOrientation.left;
+
+    return new Expanded(
+      child: new DefaultTextStyle(
+        style: section.isMyMessage
+            ? theme.textTheme.body1
+            : theme.primaryTextTheme.body1,
+        child: new Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: section.isMyMessage
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+          children: section.messages
+              .map((Message message) => new ChatBubble(
+                    child: message.buildWidget(),
+                    orientation: orientation,
+                    backgroundColor: backgroundColor,
+                  ))
+              .toList(),
+        ),
+      ),
+    );
   }
 }

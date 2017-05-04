@@ -5,8 +5,11 @@
 name: chat_conversation
 
 dependencies:
+  fixtures:
+    path: ../../../common/packages/fixtures
   flutter:
     sdk: flutter
+  intl: ^0.14.0
   lib.widgets:
     path: ../../../../../lib/widgets/packages/widgets
   models:

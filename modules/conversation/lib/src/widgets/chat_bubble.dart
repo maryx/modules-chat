@@ -7,7 +7,7 @@ import 'package:meta/meta.dart';
 import 'package:widgets/fixtures.dart';
 import 'package:widgets_meta/widgets_meta.dart';
 
-const Radius _kBubbleBorderRadius = const Radius.circular(8.0);
+const Radius _kBubbleBorderRadius = const Radius.circular(16.0);
 
 /// The direction that the chat bubble is orientated
 enum ChatBubbleOrientation {
@@ -66,9 +66,15 @@ class ChatBubble extends StatelessWidget {
     // If the background color is not provided, the background will default to
     // the current theme's primary color. In this case, make sure to use the
     // primaryTextTheme which contrasts with the primary color.
-    TextStyle textStyle = backgroundColor != null
-        ? theme.textTheme.body1
-        : theme.primaryTextTheme.body1;
+    Widget wrappedChild;
+    if (backgroundColor == null) {
+      wrappedChild = new DefaultTextStyle(
+        style: theme.primaryTextTheme.body1,
+        child: child,
+      );
+    } else {
+      wrappedChild = child;
+    }
 
     return new Container(
       padding: const EdgeInsets.all(16.0),
@@ -77,10 +83,7 @@ class ChatBubble extends StatelessWidget {
         color: backgroundColor ?? theme.primaryColor,
         borderRadius: borderRadius,
       ),
-      child: new DefaultTextStyle(
-        style: textStyle,
-        child: child,
-      ),
+      child: wrappedChild,
     );
   }
 }
