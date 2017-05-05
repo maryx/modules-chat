@@ -31,8 +31,10 @@ class _MessageInputState extends State<MessageInput> {
   final TextEditingController _controller = new TextEditingController();
 
   void _handleSubmit() {
-    widget.onSubmitMessage?.call(_controller.text);
-    _controller.clear();
+    if (_controller.text.isNotEmpty) {
+      widget.onSubmitMessage?.call(_controller.text);
+      _controller.clear();
+    }
   }
 
   Widget buildAttachmentButton({
