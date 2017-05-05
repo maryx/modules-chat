@@ -72,8 +72,8 @@ class ChatSection extends StatelessWidget {
           result,
           new Container(
             margin: section.isMyMessage
-                ? EdgeInsets.zero
-                : const EdgeInsets.only(left: 50.0),
+                ? const EdgeInsets.only(bottom: 16.0)
+                : const EdgeInsets.only(left: 50.0, bottom: 16.0),
             child: new Text(
               TimeUtil.relativeDisplayDate(
                 date: section.lastMessageTime,

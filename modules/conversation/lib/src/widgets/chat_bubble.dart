@@ -7,7 +7,8 @@ import 'package:meta/meta.dart';
 import 'package:widgets/fixtures.dart';
 import 'package:widgets_meta/widgets_meta.dart';
 
-const Radius _kBubbleBorderRadius = const Radius.circular(16.0);
+const Radius _kBubbleBorderRadius = const Radius.circular(24.0);
+const Radius _kBubbleBorderSmallRadius = const Radius.circular(4.0);
 
 /// The direction that the chat bubble is orientated
 enum ChatBubbleOrientation {
@@ -51,6 +52,7 @@ class ChatBubble extends StatelessWidget {
     BorderRadius borderRadius;
     if (orientation == ChatBubbleOrientation.left) {
       borderRadius = const BorderRadius.only(
+        bottomLeft: _kBubbleBorderSmallRadius,
         bottomRight: _kBubbleBorderRadius,
         topLeft: _kBubbleBorderRadius,
         topRight: _kBubbleBorderRadius,
@@ -58,6 +60,7 @@ class ChatBubble extends StatelessWidget {
     } else {
       borderRadius = const BorderRadius.only(
         bottomLeft: _kBubbleBorderRadius,
+        bottomRight: _kBubbleBorderSmallRadius,
         topLeft: _kBubbleBorderRadius,
         topRight: _kBubbleBorderRadius,
       );
@@ -77,8 +80,8 @@ class ChatBubble extends StatelessWidget {
     }
 
     return new Container(
-      padding: const EdgeInsets.all(16.0),
-      margin: const EdgeInsets.all(2.0),
+      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+      margin: const EdgeInsets.only(bottom: 2.0),
       decoration: new BoxDecoration(
         color: backgroundColor ?? theme.primaryColor,
         borderRadius: borderRadius,
