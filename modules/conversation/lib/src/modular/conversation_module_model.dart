@@ -12,6 +12,7 @@ import 'package:apps.modular.services.agent.agent_controller/agent_controller.fi
 import 'package:apps.modular.services.component/component_context.fidl.dart';
 import 'package:apps.modular.services.component/message_queue.fidl.dart';
 import 'package:apps.modular.services.module/module_context.fidl.dart';
+import 'package:apps.modular.services.module/module_controller.fidl.dart';
 import 'package:apps.modular.services.story/link.fidl.dart';
 import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart'
     as chat_fidl;
@@ -24,6 +25,7 @@ import '../widgets.dart';
 
 const String _kChatContentProviderUrl =
     'file:///system/apps/chat_content_provider';
+const String _kGalleryModuleUrl = 'file:///system/apps/gallery';
 
 const Duration _kScrollAnimationDuration = const Duration(milliseconds: 300);
 
@@ -44,6 +46,11 @@ class ChatConversationModuleModel extends ModuleModel {
 
   final MessageQueueProxy _messageQueue = new MessageQueueProxy();
   final Completer<String> _mqTokenCompleter = new Completer<String>();
+
+  final LinkProxy _childLink = new LinkProxy();
+  final LinkWatcherBinding _childLinkWatcherBinding = new LinkWatcherBinding();
+  ModuleControllerProxy _childModuleController;
+  String _currentChildModuleName;
 
   List<chat_fidl.Message> _messages;
   List<Section> _sections;
@@ -142,6 +149,12 @@ class ChatConversationModuleModel extends ModuleModel {
     _messageQueue.getToken((String token) => _mqTokenCompleter.complete(token));
     _messageQueue.receive(_handleNewMessage);
 
+    // Obtain a separate Link for storing the child module state.
+    moduleContext.getLink('child', _childLink.ctrl.request());
+    _childLink.watch(_childLinkWatcherBinding.wrap(new LinkWatcherImpl(
+      onNotify: _onNotifyChild,
+    )));
+
     // Close all the unnecessary bindings.
     contentProviderServices.ctrl.close();
     componentContext.ctrl.close();
@@ -239,12 +252,21 @@ class ChatConversationModuleModel extends ModuleModel {
   }
 
   Message _createMessageFromFidl(chat_fidl.Message m) {
+    DateTime time = new DateTime.fromMillisecondsSinceEpoch(m.timestamp);
+
     switch (m.type) {
       case 'text':
         return new TextMessage(
-          time: new DateTime.fromMillisecondsSinceEpoch(m.timestamp),
+          time: time,
           sender: m.sender,
           text: m.jsonPayload,
+        );
+
+      case 'image-url':
+        return new ImageUrlMessage(
+          time: time,
+          sender: m.sender,
+          url: m.jsonPayload,
         );
 
       default:
@@ -266,7 +288,10 @@ class ChatConversationModuleModel extends ModuleModel {
       _chatContentProvider.unsubscribe(messageQueueToken);
     }
 
+    _childModuleController?.ctrl?.close();
     _messageQueue.ctrl.close();
+    _childLinkWatcherBinding.close();
+    _childLink.ctrl.close();
     _chatContentProvider.ctrl.close();
     _chatContentProviderController.ctrl.close();
 
@@ -276,6 +301,69 @@ class ChatConversationModuleModel extends ModuleModel {
   @override
   void onNotify(String json) {
     _setConversationId(JSON.decode(json));
+  }
+
+  /// Toggle the gallery module on the right side.
+  ///
+  /// If the gallery module is already running as a child, close that module.
+  /// Otherwise, start the gallery module.
+  void toggleGalleryModule() {
+    if (_currentChildModuleName == 'gallery') {
+      _closeChildModule();
+    } else {
+      _startChildModule('gallery', _kGalleryModuleUrl);
+    }
+  }
+
+  /// Start a sub-module, which will be added as a hierarchical child.
+  void _startChildModule(String name, String url) {
+    _closeChildModule();
+    _childModuleController = new ModuleControllerProxy();
+
+    moduleContext.startModuleInShell(
+      name,
+      url,
+      name,
+      null,
+      null,
+      _childModuleController.ctrl.request(),
+      'h', // for 'hierarchical' view type.
+    );
+
+    // Write to the child link so that this can be rehydrated later.
+    _currentChildModuleName = name;
+    _childLink.set(
+      const <String>[],
+      JSON.encode(<String, String>{'name': name, 'url': url}),
+    );
+  }
+
+  /// Close an already running child module, if any.
+  void _closeChildModule() {
+    if (_childModuleController != null) {
+      _childModuleController.stop(() => null);
+      _childModuleController.ctrl.close();
+      _childModuleController = null;
+      _currentChildModuleName = null;
+      _childLink.set(<String>[], JSON.encode(null));
+    }
+  }
+
+  void _onNotifyChild(String json) {
+    try {
+      if (json != null) {
+        dynamic decoded = JSON.decode(json);
+        if (decoded is Map<String, String>) {
+          String name = decoded['name'];
+          String url = decoded['url'];
+          if (name != null && url != null) {
+            _startChildModule(decoded['name'], decoded['url']);
+          }
+        }
+      }
+    } catch (e) {
+      _log('Could not parse the child Link data: $json');
+    }
   }
 
   /// Send a new message to the current conversation.

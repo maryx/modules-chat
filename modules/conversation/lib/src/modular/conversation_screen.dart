@@ -27,6 +27,7 @@ class ChatConversationScreen extends StatelessWidget {
             return new ChatConversation(
               sections: conversationModel.sections,
               onSubmitMessage: conversationModel.sendMessage,
+              onTapSharePhoto: conversationModel.toggleGalleryModule,
               scrollController: conversationModel.scrollController,
             );
           },

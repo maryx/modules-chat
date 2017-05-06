@@ -20,6 +20,9 @@ class ChatConversation extends StatefulWidget {
   /// Callback for when a new message is submitted
   final ValueChanged<String> onSubmitMessage;
 
+  /// Callback for when the share photo button is tapped
+  final VoidCallback onTapSharePhoto;
+
   /// Optional [ScrollController] to be used in the [ListView]. The [ListView]
   /// is a reverse list, so the `0.0` scroll offset indicates the bottom end of
   /// the list.
@@ -31,6 +34,7 @@ class ChatConversation extends StatefulWidget {
     @required this.sections,
     this.title,
     this.onSubmitMessage,
+    this.onTapSharePhoto,
     this.scrollController,
   })
       : super(key: key) {
@@ -88,6 +92,7 @@ class _ChatConversationState extends State<ChatConversation> {
         ),
         new MessageInput(
           onSubmitMessage: widget.onSubmitMessage,
+          onTapSharePhoto: widget.onTapSharePhoto,
         ),
       ],
     );
