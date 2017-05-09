@@ -26,6 +26,9 @@ abstract class Message {
   /// The type of the message. (e.g. 'text')
   String get type;
 
+  /// Indicates whether the message should fill the chat bubble area or not.
+  bool get fillBubble => false;
+
   /// Returns the [Widget] representation of this model.
   Widget buildWidget();
 }

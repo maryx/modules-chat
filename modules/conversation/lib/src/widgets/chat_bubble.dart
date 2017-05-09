@@ -34,14 +34,19 @@ class ChatBubble extends StatelessWidget {
   /// Defaults to the primary color of theme
   final Color backgroundColor;
 
+  /// Indicates whether the message should fill the entire bubble area or not.
+  final bool fillBubble;
+
   /// Constructor
   ChatBubble({
     Key key,
     ChatBubbleOrientation orientation,
     this.backgroundColor,
+    bool fillBubble,
     @required @Generator(WidgetFixtures, 'sentenceText') this.child,
   })
       : orientation = orientation ?? ChatBubbleOrientation.left,
+        fillBubble = fillBubble ?? false,
         super(key: key) {
     assert(child != null);
   }
@@ -50,7 +55,9 @@ class ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     ThemeData theme = Theme.of(context);
     BorderRadius borderRadius;
-    if (orientation == ChatBubbleOrientation.left) {
+    if (fillBubble) {
+      borderRadius = const BorderRadius.all(_kBubbleBorderSmallRadius);
+    } else if (orientation == ChatBubbleOrientation.left) {
       borderRadius = const BorderRadius.only(
         bottomLeft: _kBubbleBorderSmallRadius,
         bottomRight: _kBubbleBorderRadius,
@@ -66,6 +73,13 @@ class ChatBubble extends StatelessWidget {
       );
     }
 
+    EdgeInsets padding;
+    if (fillBubble) {
+      padding = EdgeInsets.zero;
+    } else {
+      padding = const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0);
+    }
+
     // If the background color is not provided, the background will default to
     // the current theme's primary color. In this case, make sure to use the
     // primaryTextTheme which contrasts with the primary color.
@@ -79,14 +93,17 @@ class ChatBubble extends StatelessWidget {
       wrappedChild = child;
     }
 
-    return new Container(
-      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-      margin: const EdgeInsets.only(bottom: 2.0),
-      decoration: new BoxDecoration(
-        color: backgroundColor ?? theme.primaryColor,
-        borderRadius: borderRadius,
+    return new ClipRRect(
+      borderRadius: borderRadius,
+      child: new Container(
+        padding: padding,
+        margin: const EdgeInsets.only(bottom: 2.0),
+        decoration: new BoxDecoration(
+          color: backgroundColor ?? theme.primaryColor,
+          borderRadius: borderRadius,
+        ),
+        child: wrappedChild,
       ),
-      child: wrappedChild,
     );
   }
 }

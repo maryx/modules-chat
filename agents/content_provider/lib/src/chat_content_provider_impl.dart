@@ -79,6 +79,10 @@ class ChatContentProviderImpl extends ChatContentProvider {
     isValidKey: (dynamic key) => key is List<int>,
   );
 
+  /// The last index of the messages that the current user sent to other people.
+  /// This value is added to the message ids to prevent id collision.
+  int _messageIndex = 0;
+
   /// Indicates whether the [Ledger] initialization is successfully done.
   final Completer<Null> _ledgerReady = new Completer<Null>();
 
@@ -567,8 +571,10 @@ class ChatContentProviderImpl extends ChatContentProvider {
 
       // First, store the message in the current user's Ledger.
       int localTimestamp = new DateTime.now().millisecondsSinceEpoch;
-      Uint8List messageId = new Uint8List(8);
-      new ByteData.view(messageId.buffer).setInt64(0, localTimestamp);
+      Uint8List messageId = new Uint8List(12);
+      new ByteData.view(messageId.buffer)
+        ..setInt64(0, localTimestamp)
+        ..setInt32(8, _messageIndex++);
 
       // TODO(youngseokyoon): add device name to the key.
       // https://fuchsia.atlassian.net/browse/SO-367

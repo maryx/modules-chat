@@ -29,5 +29,8 @@ class ImageUrlMessage extends Message {
   String get type => 'image-url';
 
   @override
+  bool get fillBubble => true;
+
+  @override
   Widget buildWidget() => new Image.network(url);
 }

@@ -16,8 +16,10 @@ import 'package:apps.modular.services.module/module_controller.fidl.dart';
 import 'package:apps.modular.services.story/link.fidl.dart';
 import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart'
     as chat_fidl;
+import 'package:apps.modules.common.services.gallery/gallery.fidl.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
+import 'package:lib.fidl.dart/bindings.dart' hide Message;
 import 'package:lib.widgets/modular.dart';
 
 import '../models.dart';
@@ -44,8 +46,13 @@ class ChatConversationModuleModel extends ModuleModel {
   final chat_fidl.ChatContentProviderProxy _chatContentProvider =
       new chat_fidl.ChatContentProviderProxy();
 
-  final MessageQueueProxy _messageQueue = new MessageQueueProxy();
-  final Completer<String> _mqTokenCompleter = new Completer<String>();
+  final MessageQueueProxy _mqNewMessages = new MessageQueueProxy();
+  final Completer<String> _mqNewMessagesToken = new Completer<String>();
+
+  final MessageQueueProxy _mqSelectedImages = new MessageQueueProxy();
+  final Completer<String> _mqSelectedImagesToken = new Completer<String>();
+
+  GalleryServiceProxy _galleryService;
 
   final LinkProxy _childLink = new LinkProxy();
   final LinkWatcherBinding _childLinkWatcherBinding = new LinkWatcherBinding();
@@ -140,14 +147,26 @@ class ChatConversationModuleModel extends ModuleModel {
     );
     connectToService(contentProviderServices, _chatContentProvider.ctrl);
 
-    // Obtain a message queue.
+    // Obtain a message queue for new messages.
     componentContext.obtainMessageQueue(
       'chat_conversation',
-      _messageQueue.ctrl.request(),
+      _mqNewMessages.ctrl.request(),
     );
     // Save the message queue token for later use.
-    _messageQueue.getToken((String token) => _mqTokenCompleter.complete(token));
-    _messageQueue.receive(_handleNewMessage);
+    _mqNewMessages
+        .getToken((String token) => _mqNewMessagesToken.complete(token));
+    _mqNewMessages.receive(_handleNewMessage);
+
+    // Obtain another message queue for getting notified of selected images from
+    // gallery module.
+    componentContext.obtainMessageQueue(
+      'gallery',
+      _mqSelectedImages.ctrl.request(),
+    );
+    // Save the message queue token for later use.
+    _mqSelectedImages
+        .getToken((String token) => _mqSelectedImagesToken.complete(token));
+    _mqSelectedImages.receive(_handleSelectedImages);
 
     // Obtain a separate Link for storing the child module state.
     moduleContext.getLink('child', _childLink.ctrl.request());
@@ -175,7 +194,7 @@ class ChatConversationModuleModel extends ModuleModel {
       return;
     }
 
-    String messageQueueToken = await _mqTokenCompleter.future;
+    String messageQueueToken = await _mqNewMessagesToken.future;
     _chatContentProvider.getMessages(
       conversationId,
       messageQueueToken,
@@ -235,7 +254,7 @@ class ChatConversationModuleModel extends ModuleModel {
           'message queue: $e');
     } finally {
       // Register the handler again to process further messages.
-      _messageQueue.receive(_handleNewMessage);
+      _mqNewMessages.receive(_handleNewMessage);
     }
   }
 
@@ -249,6 +268,28 @@ class ChatConversationModuleModel extends ModuleModel {
       curve: Curves.easeOut,
       duration: _kScrollAnimationDuration,
     );
+  }
+
+  void _handleSelectedImages(String message) {
+    _log('handleSelectedImages: $message');
+
+    Map<String, dynamic> decoded = JSON.decode(message);
+    if (decoded['selected_images'] != null) {
+      List<String> imageUrls = decoded['selected_images'];
+      imageUrls.forEach((String imageUrl) {
+        _log('sending image url message: $imageUrl');
+        _chatContentProvider.sendMessage(
+          conversationId,
+          'image-url',
+          imageUrl,
+          (_, __) => null,
+        );
+      });
+    }
+
+    // After adding the images, close the gallery module.
+    _closeChildModule();
+    _mqSelectedImages.receive(_handleSelectedImages);
   }
 
   Message _createMessageFromFidl(chat_fidl.Message m) {
@@ -283,13 +324,20 @@ class ChatConversationModuleModel extends ModuleModel {
 
   @override
   Future<Null> onStop() async {
-    if (_mqTokenCompleter.isCompleted) {
-      String messageQueueToken = await _mqTokenCompleter.future;
+    if (_mqNewMessagesToken.isCompleted) {
+      String messageQueueToken = await _mqNewMessagesToken.future;
       _chatContentProvider.unsubscribe(messageQueueToken);
     }
 
+    if (_mqSelectedImagesToken.isCompleted) {
+      String messageQueueToken = await _mqSelectedImagesToken.future;
+      _galleryService?.unsubscribe(messageQueueToken);
+    }
+
+    _galleryService?.ctrl?.close();
     _childModuleController?.ctrl?.close();
-    _messageQueue.ctrl.close();
+    _mqNewMessages.ctrl.close();
+    _mqSelectedImages.ctrl.close();
     _childLinkWatcherBinding.close();
     _childLink.ctrl.close();
     _chatContentProvider.ctrl.close();
@@ -307,16 +355,30 @@ class ChatConversationModuleModel extends ModuleModel {
   ///
   /// If the gallery module is already running as a child, close that module.
   /// Otherwise, start the gallery module.
-  void toggleGalleryModule() {
+  Future<Null> toggleGalleryModule() async {
     if (_currentChildModuleName == 'gallery') {
       _closeChildModule();
     } else {
-      _startChildModule('gallery', _kGalleryModuleUrl);
+      ServiceProviderProxy incomingServices = new ServiceProviderProxy();
+      _startChildModule(
+        'gallery',
+        _kGalleryModuleUrl,
+        incomingServices.ctrl.request(),
+      );
+      _galleryService = new GalleryServiceProxy();
+      connectToService(incomingServices, _galleryService.ctrl);
+      incomingServices.ctrl.close();
+
+      _galleryService.subscribe(await _mqSelectedImagesToken.future);
     }
   }
 
   /// Start a sub-module, which will be added as a hierarchical child.
-  void _startChildModule(String name, String url) {
+  void _startChildModule(
+    String name,
+    String url,
+    InterfaceRequest<ServiceProvider> incomingServices,
+  ) {
     _closeChildModule();
     _childModuleController = new ModuleControllerProxy();
 
@@ -325,7 +387,7 @@ class ChatConversationModuleModel extends ModuleModel {
       url,
       name,
       null,
-      null,
+      incomingServices,
       _childModuleController.ctrl.request(),
       'h', // for 'hierarchical' view type.
     );
@@ -347,17 +409,40 @@ class ChatConversationModuleModel extends ModuleModel {
       _currentChildModuleName = null;
       _childLink.set(<String>[], JSON.encode(null));
     }
+
+    if (_galleryService != null) {
+      _galleryService.ctrl.close();
+      _galleryService = null;
+    }
   }
 
-  void _onNotifyChild(String json) {
+  Future<Null> _onNotifyChild(String json) async {
     try {
       if (json != null) {
         dynamic decoded = JSON.decode(json);
         if (decoded is Map<String, String>) {
           String name = decoded['name'];
           String url = decoded['url'];
+
           if (name != null && url != null) {
-            _startChildModule(decoded['name'], decoded['url']);
+            ServiceProviderProxy incomingServices = new ServiceProviderProxy();
+
+            _startChildModule(
+              name,
+              url,
+              incomingServices.ctrl.request(),
+            );
+
+            // TODO(youngseokyoon): handle this in a more generalized way.
+            if (name == 'gallery') {
+              _galleryService?.ctrl?.close();
+              _galleryService = new GalleryServiceProxy();
+              connectToService(incomingServices, _galleryService.ctrl);
+
+              _galleryService.subscribe(await _mqSelectedImagesToken.future);
+            }
+
+            incomingServices.ctrl.close();
           }
         }
       }

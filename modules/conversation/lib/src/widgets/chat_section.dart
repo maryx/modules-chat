@@ -145,6 +145,7 @@ class ChatSection extends StatelessWidget {
                     child: message.buildWidget(),
                     orientation: orientation,
                     backgroundColor: backgroundColor,
+                    fillBubble: message.fillBubble,
                   ))
               .toList(),
         ),

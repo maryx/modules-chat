@@ -18,6 +18,7 @@ flutter_app("chat_conversation") {
     "//apps/modules/common/packages/fixtures",
     "//apps/modules/common/packages/widgets",
     "//apps/modules/common/packages/widgets_meta",
+    "//apps/modules/common/services/gallery:gallery_dart",
     "//apps/mozart/services/views:views_dart",
     "//lib/fidl/dart",
     "//lib/flutter/packages/flutter",
