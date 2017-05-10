@@ -84,7 +84,7 @@ class ChatContentProviderTestModule extends Module {
       _log('Test Error:\n$e\n$stackTrace');
     }
 
-    _testRunner.teardown();
+    _testRunner.teardown(() {});
   }
 
   /// Implements [Module] interface.
