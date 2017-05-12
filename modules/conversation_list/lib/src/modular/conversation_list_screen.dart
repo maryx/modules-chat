@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
-import 'package:lib.widgets/hacks.dart' as hacks;
 import 'package:lib.widgets/model.dart';
 
 import '../models.dart';
@@ -64,7 +63,7 @@ class ChatConversationListScreen extends StatelessWidget {
     return new Center(
       child: new Material(
         child: new Container(
-          child: new hacks.RawKeyboardTextField(
+          child: new TextField(
             onSubmitted: (String text) {
               // TODO(youngseokyoon): make the form prettier.
               // https://fuchsia.atlassian.net/browse/SO-369

@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
-import 'package:lib.widgets/hacks.dart';
 
 const double _kPaddingValue = 16.0;
 
@@ -106,7 +105,7 @@ class _MessageInputState extends State<MessageInput> {
             ),
             new Expanded(
               flex: 1,
-              child: new FuchsiaCompatibleTextField(
+              child: new TextField(
                 controller: _controller,
                 onSubmitted: (_) => _handleSubmit(),
                 decoration: const InputDecoration.collapsed(
