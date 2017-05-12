@@ -66,25 +66,19 @@ before running the chat modules correctly.
     that app's sign-in flow enabling Google authentication and authorization for
     this project.
 
-1. Setup the security rules for realtime database.
+2. Setup the security rules for realtime database.
   * Navigate to Database -> RULES from the Firebase console.
   * Set the security rules as follows:
 
     ```
     {
       "rules": {
-        "users": {
-          "$uid": {
-            "email": {
-              ".read": "auth != null",
-              ".write": "$uid == auth.uid"
-            },
-            "messages": {
-              ".read": "$uid == auth.uid",
-              ".write": "auth != null",
-            }
+        "emails": {
+          "$encodedEmail": {
+            ".read": "$encodedEmail == auth.token.email.toLowerCase().replace('.', '&2E')",
+            ".write": "auth != null",
           }
-        }
+        },
       }
     }
     ```
@@ -92,7 +86,7 @@ before running the chat modules correctly.
     This will ensure that users can send any messages to any signed up users and
     the messages can only be read by the designated recipients.
 
-1. Authenticate with Google from the host side.
+3. Authenticate with Google from the host side.
   * Run `make auth` command from `//apps/modules/common` repository to generate
     the `config.json` file under the same directory
     (See [instructions][auth-instructions]).

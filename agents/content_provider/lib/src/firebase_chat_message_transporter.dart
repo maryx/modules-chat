@@ -198,6 +198,7 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
     if (response.statusCode != 200) {
       _log('ERROR: Failed to send message to $recipient. '
           'Status Code: ${response.statusCode}');
+      _log('Response body: ${response.body}');
 
       if (response.statusCode == 401) {
         // TODO(youngseokyoon): retry after refreshing the auth token.
@@ -425,11 +426,24 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
   /// Firebase DB keys.
   ///
   /// Since there are certain characters that are not allowed in Firebase keys,
-  /// encode each unallowed character to be '%' followed by the two digit upper
+  /// encode each unallowed character to be '&' followed by the two digit upper
   /// case hex value of that character, similar to URI encoding.
-  /// (e.g. `john.doe@example.com` becomes `john%2Edoe@example%2Ecom`).
+  ///
+  /// (e.g. `john.doe@example.com` becomes `john&2Edoe@example&2Ecom`).
+  ///
+  /// NOTE: Originally, we were using `%` instead of `&`, but Firebase API
+  /// started to reject any `%` characters in a database path when using their
+  /// REST API, so we now have to use a different character.
   String _encodeFirebaseKey(String original) {
-    const List<String> toEncode = const <String>['.', '\$', '[', ']', '#', '/'];
+    const List<String> toEncode = const <String>[
+      '.',
+      '\$',
+      '[',
+      ']',
+      '#',
+      '/',
+      '%',
+    ];
 
     String result = original;
     toEncode.forEach((String ch) {
@@ -437,7 +451,7 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
       if (radixString.length < 2) {
         radixString = '0$radixString';
       }
-      result = result.replaceAll(ch, '%$radixString');
+      result = result.replaceAll(ch, '&$radixString');
     });
 
     return result;
