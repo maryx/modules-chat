@@ -9,6 +9,7 @@ import 'package:application.services/service_provider.fidl.dart';
 import 'package:apps.maxwell.services.suggestion/proposal_publisher.fidl.dart';
 import 'package:apps.modular.services.agent/agent.fidl.dart';
 import 'package:apps.modular.services.agent/agent_context.fidl.dart';
+import 'package:apps.modular.services.auth/token_provider.fidl.dart';
 import 'package:apps.modular.services.component/component_context.fidl.dart';
 import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart';
 import 'package:lib.fidl.dart/bindings.dart';
@@ -34,6 +35,8 @@ class ChatContentProviderAgent extends Agent {
 
   ChatContentProviderImpl _contentProviderImpl;
 
+  TokenProviderProxy _tokenProvider;
+
   /// Bind an [InterfaceRequest] for an [Agent] interface to this object.
   void bind(InterfaceRequest<Agent> request) {
     _agentBinding.bind(this, request);
@@ -42,7 +45,9 @@ class ChatContentProviderAgent extends Agent {
   /// Implements [Agent] interface.
   @override
   Future<Null> initialize(
-      InterfaceHandle<AgentContext> agentContextHandle, void callback()) async {
+    InterfaceHandle<AgentContext> agentContextHandle,
+    void callback(),
+  ) async {
     _log('Agent::initialize start.');
 
     // Get the ComponentContext
@@ -50,10 +55,17 @@ class ChatContentProviderAgent extends Agent {
       ..ctrl.bind(agentContextHandle);
     agentContext.getComponentContext(_componentContext.ctrl.request());
 
+    // Get the TokenProvider
+    _tokenProvider?.ctrl?.close();
+    _tokenProvider = new TokenProviderProxy();
+    agentContext.getTokenProvider(_tokenProvider.ctrl.request());
+
     // Initialize the content provider.
     _contentProviderImpl = new ChatContentProviderImpl(
       componentContext: _componentContext,
-      chatMessageTransporter: new FirebaseChatMessageTransporter(),
+      chatMessageTransporter: new FirebaseChatMessageTransporter(
+        tokenProvider: _tokenProvider,
+      ),
     );
     await _contentProviderImpl.initialize();
 
@@ -98,6 +110,9 @@ class ChatContentProviderAgent extends Agent {
   /// Implements [Agent] interface.
   @override
   void stop(void callback()) {
+    _tokenProvider?.ctrl?.close();
+    _tokenProvider = null;
+
     _outgoingServicesBindings
         .forEach((ServiceProviderBinding binding) => binding.close());
 

@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:convert' show JSON;
 
+import 'package:apps.modular.services.auth/token_provider.fidl.dart';
 import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart';
 import 'package:config/config.dart';
 import 'package:eventsource/eventsource.dart';
@@ -35,6 +36,9 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
   /// [EventSource] connection for wathcing the incoming messages from Firebase.
   EventSource _eventSource;
 
+  /// The [TokenProvider] instance from which the id_token can be obtained.
+  final TokenProvider _tokenProvider;
+
   /// An http client for making requests to the Firebase DB server. This same
   /// client should be used for all https calls, so that data such as the DNS
   /// lookup results can be cached and reused.
@@ -49,20 +53,26 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
   final Set<String> _cachedMessageKeys = new Set<String>();
 
   /// Creates a new [FirebaseChatMessageTransporter] instance.
-  FirebaseChatMessageTransporter({MessageReceivedCallback onReceived})
-      : super(onReceived: onReceived);
+  FirebaseChatMessageTransporter({
+    MessageReceivedCallback onReceived,
+    @required TokenProvider tokenProvider,
+  })
+      : _tokenProvider = tokenProvider,
+        super(onReceived: onReceived);
 
   /// Sign in to the firebase DB using the given google auth credentials.
   @override
   Future<Null> initialize() async {
     try {
-      // First, see if the required config values are all provided.
+      if (_tokenProvider == null) {
+        throw new Exception('TokenProvider is not provided.');
+      }
+
+      // See if the required config values are all provided.
       Config config = await Config.read('/system/data/modules/config.json');
       List<String> keys = <String>[
         'chat_firebase_api_key',
         'chat_firebase_project_id',
-        'id_token',
-        'oauth_token',
       ];
 
       config.validate(keys);
@@ -78,6 +88,11 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
         },
       );
 
+      // Obtain the id token from the TokenProvider.
+      Completer<String> idTokenCompleter = new Completer<String>();
+      _tokenProvider.getIdToken(idTokenCompleter.complete);
+      String idToken = await idTokenCompleter.future;
+
       http.Response identityToolkitResponse = await _client.post(
         identityToolkitUrl,
         headers: <String, String>{
@@ -85,8 +100,7 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
           'content-type': 'application/json',
         },
         body: JSON.encode(<String, dynamic>{
-          'postBody':
-              'id_token=${_config.get('id_token')}&providerId=google.com',
+          'postBody': 'id_token=$idToken&providerId=google.com',
           'requestUri': 'http://localhost',
           'returnIdpCredential': true,
           'returnSecureToken': true,

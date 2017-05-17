@@ -86,19 +86,19 @@ before running the chat modules correctly.
     This will ensure that users can send any messages to any signed up users and
     the messages can only be read by the designated recipients.
 
-3. Authenticate with Google from the host side.
-  * Run `make auth` command from `//apps/modules/common` repository to generate
-    the `config.json` file under the same directory
-    (See [instructions][auth-instructions]).
-    Make sure that the `id_token` value is written in the `config.json` file.
-  * Manually add the following values to the `config.json` file.
+3. Add the Firebase project information to the configuration file, so that your
+   chat module may send messages to other users.
+  * Manually add the following values to `//apps/modules/common/config.json`.
     * `"chat_firebase_api_key"`: `<web_api_key>`
     * `"chat_firebase_project_id"`: `<firebase_project_id>`
     * These two value can be found from your Firebase project console.
       Navigate to the Gear icon (upper-left side) -> Project settings.
-    * Once you add these values, you don't have to add these later again, since
-      `make auth` tool will preserve all the manually added key-values in the
-      `config.json`.
+  * After adding these values, build fuchsia again, or manually copy the
+    `config.json` file onto the fuchsia device at
+    `/system/data/modules/config.json`.
+  * NOTE: This implies that only the chat users using the same Firebase project
+    can talk to each other.
+
 
 # Running Tests
 
