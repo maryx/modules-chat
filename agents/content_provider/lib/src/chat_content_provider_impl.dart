@@ -4,11 +4,13 @@
 
 import 'dart:async';
 import 'dart:collection';
+import 'dart:convert' show UTF8;
 import 'dart:typed_data';
 
 import 'package:apps.ledger.services.public/ledger.fidl.dart';
 import 'package:apps.modular.services.component/component_context.fidl.dart';
 import 'package:apps.modular.services.component/message_queue.fidl.dart';
+import 'package:apps.modular.services.device..info/device_info.fidl.dart';
 import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart';
 import 'package:collection/collection.dart';
 import 'package:lib.fidl.dart/bindings.dart' show InterfaceRequest;
@@ -57,6 +59,12 @@ class ChatContentProviderImpl extends ChatContentProvider {
   /// [ChatMessageTransporter] for sending / receiveing messages between users.
   final ChatMessageTransporter chatMessageTransporter;
 
+  /// The device id obtained from the [DeviceInfo] service.
+  final String deviceId;
+
+  /// The device id encoded in UTF8.
+  final Uint8List deviceIdBytes;
+
   /// [Ledger] instance given to the content provider.
   LedgerProxy _ledger;
 
@@ -90,7 +98,11 @@ class ChatContentProviderImpl extends ChatContentProvider {
   ChatContentProviderImpl({
     @required this.componentContext,
     @required this.chatMessageTransporter,
-  }) {
+    this.deviceId,
+  })
+      : deviceIdBytes = deviceId != null
+            ? new Uint8List.fromList(UTF8.encode(deviceId))
+            : new Uint8List(0) {
     assert(componentContext != null);
     assert(chatMessageTransporter != null);
 
@@ -570,14 +582,16 @@ class ChatContentProviderImpl extends ChatContentProvider {
       }
 
       // First, store the message in the current user's Ledger.
+
+      // The message id is constructed by concatenating three values: the local
+      // timestamp, incremental message index, and device id.
+      // Refer to the `chat_content_provider.fidl` file for the full rationale.
       int localTimestamp = new DateTime.now().millisecondsSinceEpoch;
-      Uint8List messageId = new Uint8List(12);
+      Uint8List messageId = new Uint8List(12 + deviceIdBytes.lengthInBytes);
       new ByteData.view(messageId.buffer)
         ..setInt64(0, localTimestamp)
         ..setInt32(8, _messageIndex++);
-
-      // TODO(youngseokyoon): add device name to the key.
-      // https://fuchsia.atlassian.net/browse/SO-367
+      messageId.setRange(12, 12 + deviceIdBytes.lengthInBytes, deviceIdBytes);
 
       Map<String, dynamic> localMessageObject = <String, dynamic>{
         'id': messageId,

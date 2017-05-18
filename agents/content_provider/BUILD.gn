@@ -14,6 +14,7 @@ dart_app("chat_content_provider") {
     "//apps/maxwell/services/suggestion:suggestion_dart",
     "//apps/modular/services/agent:agent_dart",
     "//apps/modular/services/auth:auth_dart",
+    "//apps/modular/services/device:info_dart",
     "//apps/modules/chat/services:services_dart",
     "//apps/modules/common/packages/config",
     "//apps/modules/common/packages/fixtures",

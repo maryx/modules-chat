@@ -11,6 +11,7 @@ import 'package:apps.modular.services.agent/agent.fidl.dart';
 import 'package:apps.modular.services.agent/agent_context.fidl.dart';
 import 'package:apps.modular.services.auth/token_provider.fidl.dart';
 import 'package:apps.modular.services.component/component_context.fidl.dart';
+import 'package:apps.modular.services.device..info/device_info.fidl.dart';
 import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart';
 import 'package:lib.fidl.dart/bindings.dart';
 
@@ -55,6 +56,14 @@ class ChatContentProviderAgent extends Agent {
       ..ctrl.bind(agentContextHandle);
     agentContext.getComponentContext(_componentContext.ctrl.request());
 
+    // Get the device id.
+    DeviceInfoProxy deviceInfo = new DeviceInfoProxy();
+    connectToService(_context.environmentServices, deviceInfo.ctrl);
+    Completer<String> deviceIdCompleter = new Completer<String>();
+    deviceInfo.getDeviceIdForSyncing(deviceIdCompleter.complete);
+    String deviceId = await deviceIdCompleter.future;
+    deviceInfo.ctrl.close();
+
     // Get the TokenProvider
     _tokenProvider?.ctrl?.close();
     _tokenProvider = new TokenProviderProxy();
@@ -66,6 +75,7 @@ class ChatContentProviderAgent extends Agent {
       chatMessageTransporter: new FirebaseChatMessageTransporter(
         tokenProvider: _tokenProvider,
       ),
+      deviceId: deviceId,
     );
     await _contentProviderImpl.initialize();
 

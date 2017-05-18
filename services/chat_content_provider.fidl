@@ -106,7 +106,19 @@ interface ChatContentProvider {
       => (ChatStatus status, Message? message);
 
   // Sends a new message to the specified conversation.
-  // Returns the created message id.
+  // Returns the |message_id| created by the content provider.
+  //
+  // The returned |message_id| is constructed by concatenating three values:
+  //
+  // 1. Local timestamp since epoch
+  //  - Putting the timestamp at the beginning guarantees the sort order.
+  //
+  // 2. Incremental message index
+  //  - This prevents id collision when adding a batch of messages at once.
+  //
+  // 3. Device id
+  //  - This prevents accidental id collision when between multiple devices of
+  //    the same user.
   SendMessage(array<uint8> conversation_id, string type, string json_payload)
       => (ChatStatus status, array<uint8> message_id);
 
