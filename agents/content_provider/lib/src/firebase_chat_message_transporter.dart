@@ -14,6 +14,9 @@ import 'package:meta/meta.dart';
 
 import 'chat_message_transporter.dart';
 
+const int _kMaxRetryCount = 3;
+const Duration _kInitDebounceWindow = const Duration(seconds: 5);
+
 void _log(String msg) {
   print('[firebase_chat_message_transporter] $msg');
 }
@@ -36,6 +39,9 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
   /// [EventSource] connection for wathcing the incoming messages from Firebase.
   EventSource _eventSource;
 
+  /// [StreamSubscription] for canceling the subscription when needed.
+  StreamSubscription<Event> _eventSourceSubscription;
+
   /// The [TokenProvider] instance from which the id_token can be obtained.
   final TokenProvider _tokenProvider;
 
@@ -46,7 +52,11 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
 
   /// A [Completer] which completes when the Firebase initialization is done. In
   /// case of an error, this also completes with an error.
-  final Completer<Null> _ready = new Completer<Null>();
+  Completer<Null> _ready = new Completer<Null>();
+
+  /// Stores the last time [initialize()] is called, used for debouncing the
+  /// [initialize()] call.
+  DateTime _lastInitializeStartTime;
 
   /// Keep the last received message keys so that we don't process the same
   /// message more than once.
@@ -63,7 +73,25 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
   /// Sign in to the firebase DB using the given google auth credentials.
   @override
   Future<Null> initialize() async {
+    _log('initialize() start');
     try {
+      // The initialize() method can be called by multiple reasons; the
+      // 'auth_revoked' event from the event source, and any 401 unauthorized
+      // status code returned from a DB update operation.
+      // To prevent parallel running initialize() method, only allow running the
+      // initialization logic once within the debounce window.
+      DateTime now = new DateTime.now();
+      if (_lastInitializeStartTime != null &&
+          now.difference(_lastInitializeStartTime) < _kInitDebounceWindow) {
+        _log('debouncing initialize() call');
+        return _ready.future;
+      }
+      _lastInitializeStartTime = now;
+
+      if (_ready.isCompleted) {
+        _ready = new Completer<Null>();
+      }
+
       if (_tokenProvider == null) {
         throw new Exception('TokenProvider is not provided.');
       }
@@ -107,9 +135,6 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
         }),
       );
 
-      // TODO(youngseokyoon): figure out how to use the refresh token to obtain
-      // a new id_token when it's expired.
-      // https://fuchsia.atlassian.net/browse/SO-374
       if (identityToolkitResponse.statusCode != 200 ||
           (identityToolkitResponse.body?.isEmpty ?? true)) {
         throw new Exception(
@@ -202,8 +227,9 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
   Future<Null> _sendMessageTo(
     String recipient,
     String key,
-    Map<String, dynamic> value,
-  ) async {
+    Map<String, dynamic> value, [
+    int retryCount = 0,
+  ]) async {
     http.Response response = await _firebaseDBPut(
       'emails/${_encodeFirebaseKey(recipient)}/$key',
       value,
@@ -215,13 +241,17 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
       _log('Response body: ${response.body}');
 
       if (response.statusCode == 401) {
-        // TODO(youngseokyoon): retry after refreshing the auth token.
-        // If it still fails, throw an authorization exception.
-        // https://fuchsia.atlassian.net/browse/SO-374
-
-        throw new ChatAuthorizationException(
-          'Status Code: ${response.statusCode}',
-        );
+        // Retry after refreshing the auth token. If it still fails after the
+        // maximum retry count, throw an authorization exception.
+        if (retryCount < _kMaxRetryCount) {
+          _log('retrying _sendMessageTo(). count: $retryCount');
+          await initialize();
+          await _sendMessageTo(recipient, key, value, retryCount + 1);
+        } else {
+          throw new ChatAuthorizationException(
+            'Status Code: ${response.statusCode}',
+          );
+        }
       } else {
         throw new ChatNetworkException(
           'Status Code: ${response.statusCode}',
@@ -244,11 +274,21 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
     }
   }
 
+  Future<Null> _reconnectToEventStream() async {
+    await _eventSourceSubscription?.cancel();
+    _eventSourceSubscription = null;
+
+    _eventSource?.client?.close();
+    _eventSource = null;
+
+    await initialize();
+  }
+
   Future<Null> _startProcessingEventStream() async {
     assert(_eventSource != null);
 
-    try {
-      await for (Event event in _eventSource) {
+    _eventSourceSubscription = _eventSource.listen(
+      (Event event) async {
         String eventType = event.event?.toLowerCase();
 
         // Don't spam with the keep-alive event.
@@ -268,27 +308,31 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
 
           case 'cancel':
             _log('"cancel" event received. No longer able to read the data.');
+            await _reconnectToEventStream();
             break;
 
           case 'auth_revoked':
-            // TODO(youngseokyoon): renew the access token.
-            // https://fuchsia.atlassian.net/browse/SO-374
             _log('"auth_revoked" event received. The auth credential is no '
-                'longer valid and should be renewed.');
+                'longer valid and should be renewed. Renewing the credential.');
+            await _reconnectToEventStream();
             break;
 
           default:
             _log('WARNING: Unknown event type from Firebase event stream: '
                 '${eventType}');
         }
-      }
-    } catch (e) {
-      _log('Error occurred while processing the event stream: $e');
-    }
-
-    _log('Event stream is closed.');
-
-    // TODO(youngseokyoon): reconnect to the event stream?
+      },
+      onError: (dynamic e, StackTrace stackTrace) {
+        _log('Error occurred while processing the event stream: $e');
+        _log('$stackTrace');
+        _log('Continuing to receive events.');
+      },
+      onDone: () {
+        _log('Event stream is closed. Renewing the credential.');
+        _reconnectToEventStream();
+      },
+      cancelOnError: false,
+    );
   }
 
   /// Handles the 'put' event from the Firebase event stream, which usually
@@ -379,6 +423,14 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
     }
 
     // Delete that message from Firebase DB.
+    await _deleteMessageFromFirebase(messageKey);
+  }
+
+  Future<Null> _deleteMessageFromFirebase(
+    String messageKey, [
+    int retryCount = 0,
+  ]) async {
+    // Delete that message from Firebase DB.
     http.Response response = await _firebaseDBDelete(
       'emails/${_encodeFirebaseKey(_email)}/$messageKey',
     );
@@ -386,6 +438,19 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
     if (response.statusCode != 200) {
       _log('Failed to delete the processed incoming message from Firebase DB. '
           'Status Code: ${response.statusCode}');
+
+      if (response.statusCode == 401) {
+        // Retry after refreshing the auth token. If it still fails after the
+        // maximum retry count, throw an authorization exception.
+        if (retryCount < _kMaxRetryCount) {
+          _log('retrying _deleteMessageFromFirebase(). count: $retryCount');
+          await initialize();
+          await _deleteMessageFromFirebase(messageKey, retryCount + 1);
+        } else {
+          _log('Failed to delete the message from Firebase after the maximum '
+              'retry count.');
+        }
+      }
     }
   }
 
