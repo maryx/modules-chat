@@ -16,6 +16,7 @@ import 'chat_message_transporter.dart';
 
 const int _kMaxRetryCount = 3;
 const Duration _kInitDebounceWindow = const Duration(seconds: 5);
+const Duration _kHealthCheckPeriod = const Duration(minutes: 3);
 
 void _log(String msg) {
   print('[firebase_chat_message_transporter] $msg');
@@ -58,6 +59,14 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
   /// [initialize()] call.
   DateTime _lastInitializeStartTime;
 
+  /// [Timer] for periodic health check. Normally, the Firebase event stream
+  /// sends the 'keep-alive' event every 30 seconds to notify that the stream
+  /// connection is still alive. Therefore, this timer is reset every time when
+  /// a new event is sent from the Firebase event stream. When this timer
+  /// triggers, it will try to re-establish the connection to the event stream.
+  /// This way, the agent can be more resilient to any potential network errors.
+  Timer _healthCheckTimer;
+
   /// Keep the last received message keys so that we don't process the same
   /// message more than once.
   final Set<String> _cachedMessageKeys = new Set<String>();
@@ -87,6 +96,8 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
         return _ready.future;
       }
       _lastInitializeStartTime = now;
+
+      _resetHealthCheckTimer();
 
       if (_ready.isCompleted) {
         _ready = new Completer<Null>();
@@ -289,6 +300,8 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
 
     _eventSourceSubscription = _eventSource.listen(
       (Event event) async {
+        _resetHealthCheckTimer();
+
         String eventType = event.event?.toLowerCase();
 
         // Don't spam with the keep-alive event.
@@ -333,6 +346,14 @@ class FirebaseChatMessageTransporter extends ChatMessageTransporter {
       },
       cancelOnError: false,
     );
+  }
+
+  void _resetHealthCheckTimer() {
+    _healthCheckTimer?.cancel();
+    _healthCheckTimer = new Timer(_kHealthCheckPeriod, () {
+      _log('Reinitializing: triggered by the health check timer.');
+      initialize();
+    });
   }
 
   /// Handles the 'put' event from the Firebase event stream, which usually
