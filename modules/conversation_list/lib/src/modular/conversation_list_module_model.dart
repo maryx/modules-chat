@@ -14,6 +14,7 @@ import 'package:apps.modular.services.component/message_queue.fidl.dart';
 import 'package:apps.modular.services.module/module_context.fidl.dart';
 import 'package:apps.modular.services.module/module_controller.fidl.dart';
 import 'package:apps.modular.services.story/link.fidl.dart';
+import 'package:apps.modular.services.story/surface.fidl.dart';
 import 'package:apps.modules.chat.services/chat_content_provider.fidl.dart'
     as chat_fidl;
 import 'package:collection/collection.dart';
@@ -139,7 +140,9 @@ class ChatConversationListModuleModel extends ModuleModel {
       null,
       null,
       moduleControllerPair.passRequest(),
-      'h', // for 'hierarchical' view type.
+      new SurfaceRelation()
+        ..arrangement = SurfaceArrangement.copresent
+        ..emphasis = 2.0,
     );
   }
 
