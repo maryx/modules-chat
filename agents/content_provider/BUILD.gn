@@ -20,6 +20,7 @@ dart_app("chat_content_provider") {
     "//apps/modules/common/packages/fixtures",
     "//apps/modules/common/packages/models",
     "//lib/fidl/dart",
+    "//lib/widgets/packages/modular:lib.modular",
     "//third_party/dart-pkg/pub/collection",
     "//third_party/dart-pkg/pub/eventsource",
     "//third_party/dart-pkg/pub/meta",
